@@ -6,6 +6,7 @@ import ar.edu.itba.pod.api.entities.SeatCategory;
 import ar.edu.itba.pod.api.entities.Ticket;
 
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map;
 
@@ -14,15 +15,15 @@ public interface FlightManagementService extends Remote {
     void addPlaneModel(String modelName,
                         int businessRows,int businessCols,
                         int epRows, int epCols,
-                        int econRows, int econCols);
+                        int econRows, int econCols) throws RemoteException;
                         
-    void addFlight(String planeModelName, String flightCode, String destinyAirportCode, List<Ticket> tickets);
+    void addFlight(String planeModelName, String flightCode, String destinyAirportCode, List<Ticket> tickets) throws RemoteException;
 
-    FlightStatus checkFlightStatus(String flightCode);
+    FlightStatus checkFlightStatus(String flightCode) throws RemoteException;
 
-    void confirmFlight(String flightCode);
+    void confirmFlight(String flightCode) throws RemoteException;
 
-    void cancelFlight(String flightCode);
+    void cancelFlight(String flightCode) throws RemoteException;
 
-    void forceTicketChange();
+    void forceTicketChange() throws RemoteException;
 }

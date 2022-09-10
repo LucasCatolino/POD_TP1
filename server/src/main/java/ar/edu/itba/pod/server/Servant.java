@@ -1,4 +1,4 @@
-package ar.ed.itba.pod.server;
+package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.api.entities.FlightStatus;
 import ar.edu.itba.pod.api.entities.Seat;
@@ -18,7 +18,9 @@ import java.util.List;
 public class Servant implements SeatMapConsultationService, FlightNotificationService, SeatAssignmentService, FlightManagementService {
 
     private static final Logger logger = LoggerFactory.getLogger(Server.class);
-    
+
+
+
 
     @Override
     public void addPlaneModel(String modelName, int businessRows, int businessCols, int epRows, int epCols, int econRows, int econCols) throws RemoteException {

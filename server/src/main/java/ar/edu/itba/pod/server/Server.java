@@ -1,4 +1,4 @@
-package ar.ed.itba.pod.server;
+package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
@@ -14,22 +14,22 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 public class Server {
-    private static Logger logger = LoggerFactory.getLogger(Server.class);
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
     public static void main(String[] args) throws RemoteException {
         logger.info("POD_TP1 Server Starting ...");
+
         // Create Service and Export it
         final Servant servant = new Servant();
         final Remote remote = UnicastRemoteObject.exportObject(servant, 0);
 
         // Bind Services in registry name
-        final Registry registry = LocateRegistry.getRegistry("localhost");
+        final Registry registry = LocateRegistry.getRegistry();
         registry.rebind(FlightManagementService.class.getName(), remote);
         registry.rebind(FlightNotificationService.class.getName(), remote);
         registry.rebind(SeatAssignmentService.class.getName(), remote);
         registry.rebind(SeatMapConsultationService.class.getName(), remote);
 
         logger.info("Server online");
-
     }
 }

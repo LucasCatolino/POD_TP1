@@ -4,6 +4,8 @@ import ar.edu.itba.pod.api.entities.FlightStatus;
 import ar.edu.itba.pod.api.entities.Seat;
 import ar.edu.itba.pod.api.entities.SeatCategory;
 import ar.edu.itba.pod.api.entities.Ticket;
+import ar.edu.itba.pod.api.exceptions.FlightDoesntExistsException;
+import ar.edu.itba.pod.api.exceptions.PlaneModelDoesntExistsException;
 import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
 import ar.edu.itba.pod.api.services.SeatAssignmentService;
@@ -18,33 +20,51 @@ import java.util.List;
 public class Servant implements SeatMapConsultationService, FlightNotificationService, SeatAssignmentService, FlightManagementService {
 
     private static final Logger logger = LoggerFactory.getLogger(Server.class);
-
-
-
+    private static final FlightsManagement fm = new FlightsManagement();
 
     @Override
     public void addPlaneModel(String modelName, int businessRows, int businessCols, int epRows, int epCols, int econRows, int econCols) throws RemoteException {
-
+        try {
+            fm.createNewPlaneModel(modelName, businessRows, businessCols, epRows, epCols, econRows, econCols);
+        } catch (PlaneModelDoesntExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, List<Ticket> tickets) throws RemoteException {
-
+        try {
+            fm.createNewFlight(planeModelName, flightCode, destinyAirportCode, tickets);
+        } catch (PlaneModelDoesntExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public FlightStatus checkFlightStatus(String flightCode) throws RemoteException {
-        return null;
+        try {
+            return fm.checkFlightStatus(flightCode);
+        } catch (FlightDoesntExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void confirmFlight(String flightCode) throws RemoteException {
-
+        try {
+            fm.confirmFlight(flightCode);
+        } catch (FlightDoesntExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void cancelFlight(String flightCode) throws RemoteException {
-
+        try {
+            fm.cancelFlight(flightCode);
+        } catch (FlightDoesntExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

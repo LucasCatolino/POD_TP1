@@ -16,6 +16,10 @@ public class PlaneModel {
         this.econCols = econCols;
     }
 
+    public int getTotalSeats(){
+        return businessRows*businessCols + epRows*epCols + econRows*econCols;
+    }
+
     public int getBusinessRows() {
         return businessRows;
     }

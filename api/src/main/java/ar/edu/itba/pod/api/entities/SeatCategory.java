@@ -1,7 +1,7 @@
 package ar.edu.itba.pod.api.entities;
 
 public enum SeatCategory {
-    BUSINESS,
+    ECONOMY,
     PREMIUM_ECONOMY,
-    ECONOMY
+    BUSINESS
 }

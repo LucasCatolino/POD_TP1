@@ -113,7 +113,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
 
     @Override
     public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException{
-
+        
     }
 
     @Override

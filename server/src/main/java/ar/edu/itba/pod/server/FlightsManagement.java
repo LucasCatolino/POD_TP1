@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 
 public class FlightsManagement {
@@ -20,12 +21,16 @@ public class FlightsManagement {
     private SortedSet<Flight> flightsCancelled;
 
     private final ReadWriteLock flightsMapLock;
+    private final ReadWriteLock planeModelsLock;
+    private final ReadWriteLock flightsCancelledLock;
 
 
     public FlightsManagement() {
         this.flightsMap = new HashMap<>();
         this.planeModels = new ArrayList<>();
         this.flightsMapLock = new ReentrantReadWriteLock();
+        this.planeModelsLock = new ReentrantReadWriteLock();
+        this.flightsCancelledLock = new ReentrantReadWriteLock();
         this.flightsCancelled = new TreeSet<>();
     }
 
@@ -35,11 +40,15 @@ public class FlightsManagement {
 
     public void createNewPlaneModel(String name, int brows, int bcols, int eprows, int epcols, int erows, int ecols) throws PlaneModelDoesntExistsException {
         PlaneModel planeModelToAdd = new PlaneModel(name,brows,bcols,eprows,epcols,erows,ecols);
-        synchronized(planeModels){
+        planeModelsLock.writeLock().lock();
+        try{
             if(planeModels.contains(planeModelToAdd)){
                 throw new PlaneModelDoesntExistsException(planeModelToAdd.getName());
             }
             planeModels.add(planeModelToAdd);
+        }
+        finally{
+            planeModelsLock.writeLock().unlock();
         }
     }
 
@@ -172,7 +181,7 @@ public class FlightsManagement {
     ////////////////////////////////////////////////////
     //            FlightNotificationService           //
     ////////////////////////////////////////////////////
-
+//todo: this
 
     ////////////////////////////////////////////////////
     //            SeatAssignmentService               //
@@ -297,6 +306,7 @@ public class FlightsManagement {
         if(newFlight.getStatus() != FlightStatus.PENDING){
             throw new FlightIsNotPendingException(newFlightCode);
         }
+
         List<Flight> alternativeFlights = getPendingFlightsByDestiny(oldFlight.getDestinyAirportCode());
         for(Flight f : alternativeFlights){
             if(f.getFlightCode().equals(newFlight.getFlightCode())){
@@ -308,7 +318,7 @@ public class FlightsManagement {
                         else if(t.getCategory() != SeatCategory.ECONOMY && newFlight.getEpTickets() >0){
                             changeTicket(oldFlight,newFlight, passengerName, SeatCategory.PREMIUM_ECONOMY);
                         }
-                        else {
+                        else if(newFlight.geteTickets() > 0){
                             changeTicket(oldFlight,newFlight, passengerName, SeatCategory.ECONOMY);
                         }
                     }
@@ -322,8 +332,54 @@ public class FlightsManagement {
     ////////////////////////////////////////////////////
     //           SeatMapConsultationService           //
     ////////////////////////////////////////////////////
+    
+    public List<Seat> consultSeatMap(String flightCode) throws FlightDoesntExistException{
+        Flight f = flightsMap.get(flightCode);
+        if(f == null){
+            throw new FlightDoesntExistException(flightCode);
+        }
+        return f.getSeats();
+    }
+
+    public List<Seat> consultSeatMap(String flightCode, int row) throws FlightDoesntExistException, SeatRowDoesntExistException{
+        Flight f = flightsMap.get(flightCode);
+        if(f == null){
+            throw new FlightDoesntExistException(flightCode);
+        }
+        List<Seat> toret = f.getSeats().stream().filter(s -> s.getRow() == row).collect(Collectors.toList());
+        if(toret.size() > 0)
+            return toret;
+        throw new SeatRowDoesntExistException(flightCode,row); //todo Exception
+    }
+
+    public List<Seat> consultSeatMap(String flightCode, SeatCategory cat) throws FlightDoesntExistException, SeatCategoryDoesntExistException{
+        Flight f = flightsMap.get(flightCode);
+        if(f == null){
+            throw new FlightDoesntExistException(flightCode);
+        }
+        List<Seat> toret = f.getSeats().stream().filter(s-> s.getCategory() == cat).collect(Collectors.toList());
+        if(toret.size() > 0)
+            return toret;
+        throw new SeatCategoryDoesntExistException(flightCode, categoryToString(cat));
+    }
+
+
+    public String categoryToString(SeatCategory cat){
+        if(SeatCategory.BUSINESS == cat){
+            return new String("Business");
+        }
+        if (SeatCategory.PREMIUM_ECONOMY == cat){
+            return new String("Premium Economy");
+        }
+        if (SeatCategory.ECONOMY == cat){
+            return new String("Economy");
+        }
+        return null;
+    }
 }
 
-/* Comentarios de Nava
- * 
- */
+/* Comentarios de Nava 
+* holita
+* 
+* 
+*/

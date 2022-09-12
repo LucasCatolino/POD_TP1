@@ -19,6 +19,15 @@ public class PlaneModel {
     public int getTotalSeats(){
         return businessRows*businessCols + epRows*epCols + econRows*econCols;
     }
+    public int getBusinessSeats(){
+        return businessRows*businessCols;
+    }
+    public int getEconomySeats(){
+        return  econRows*econCols;
+    }
+    public int getEconomyPremiumSeats(){
+        return epRows*epCols ;
+    }
 
     public int getBusinessRows() {
         return businessRows;

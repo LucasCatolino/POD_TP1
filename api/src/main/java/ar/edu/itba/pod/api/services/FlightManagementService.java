@@ -7,7 +7,7 @@ import ar.edu.itba.pod.api.entities.Ticket;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.List;
+import java.util.SortedSet;
 import java.util.Map;
 
 public interface FlightManagementService extends Remote {
@@ -17,7 +17,7 @@ public interface FlightManagementService extends Remote {
                         int epRows, int epCols,
                         int econRows, int econCols) throws RemoteException;
                         
-    void addFlight(String planeModelName, String flightCode, String destinyAirportCode, List<Ticket> tickets) throws RemoteException;
+    void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException;
 
     FlightStatus checkFlightStatus(String flightCode) throws RemoteException;
 

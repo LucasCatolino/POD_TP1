@@ -4,8 +4,10 @@ import ar.edu.itba.pod.api.entities.FlightStatus;
 import ar.edu.itba.pod.api.entities.Seat;
 import ar.edu.itba.pod.api.entities.SeatCategory;
 import ar.edu.itba.pod.api.entities.Ticket;
-import ar.edu.itba.pod.api.exceptions.FlightDoesntExistsException;
+import ar.edu.itba.pod.api.exceptions.FlightDoesntExistException;
 import ar.edu.itba.pod.api.exceptions.PlaneModelDoesntExistsException;
+import ar.edu.itba.pod.api.exceptions.TicketNotInFlightException;
+import ar.edu.itba.pod.api.exceptions.PassengerDoesntHaveTicketException;
 import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
 import ar.edu.itba.pod.api.services.SeatAssignmentService;
@@ -16,6 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
 
 public class Servant implements SeatMapConsultationService, FlightNotificationService, SeatAssignmentService, FlightManagementService {
 
@@ -32,7 +36,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, List<Ticket> tickets) throws RemoteException {
+    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException {
         try {
             fm.createNewFlight(planeModelName, flightCode, destinyAirportCode, tickets);
         } catch (PlaneModelDoesntExistsException e) {
@@ -44,7 +48,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     public FlightStatus checkFlightStatus(String flightCode) throws RemoteException {
         try {
             return fm.checkFlightStatus(flightCode);
-        } catch (FlightDoesntExistsException e) {
+        } catch (FlightDoesntExistException e) {
             throw new RuntimeException(e);
         }
     }
@@ -53,7 +57,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     public void confirmFlight(String flightCode) throws RemoteException {
         try {
             fm.confirmFlight(flightCode);
-        } catch (FlightDoesntExistsException e) {
+        } catch (FlightDoesntExistException e) {
             throw new RuntimeException(e);
         }
     }
@@ -62,14 +66,18 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     public void cancelFlight(String flightCode) throws RemoteException {
         try {
             fm.cancelFlight(flightCode);
-        } catch (FlightDoesntExistsException e) {
+        } catch (FlightDoesntExistException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void forceTicketChange()  throws RemoteException{
-
+    public void forceTicketChange()  throws RemoteException {
+        try {
+            fm.forceTicketChange();
+        } catch (TicketNotInFlightException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -93,8 +101,14 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public List<Pair<String, List<Seat>>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException {
-        return null;
+    public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException {
+        try {
+            return fm.listAlternativeFlightSeats(flightCode, passengerName);
+        } catch (FlightDoesntExistException e){
+            throw new RuntimeException(e);
+        } catch (PassengerDoesntHaveTicketException e){
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

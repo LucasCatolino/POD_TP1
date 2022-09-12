@@ -11,7 +11,7 @@ public class Seat {
         this.row = row;
         this.column = column;
         this.category = category;
-        this.passengerName = "UN/A";
+        this.passengerName = "";
     }
     // Getters & Setters
     public int getRow() { return row; }

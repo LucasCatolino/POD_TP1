@@ -37,13 +37,12 @@ public class FlightsManagement {
     ////////////////////////////////////////////////////
     //          FlightManagementService               //
     ////////////////////////////////////////////////////
-
-    public void createNewPlaneModel(String name, int brows, int bcols, int eprows, int epcols, int erows, int ecols) throws PlaneModelDoesntExistsException {
+    public void createNewPlaneModel(String name, int brows, int bcols, int eprows, int epcols, int erows, int ecols) throws PlaneModelAlreadyExistsException {
         PlaneModel planeModelToAdd = new PlaneModel(name,brows,bcols,eprows,epcols,erows,ecols);
         planeModelsLock.writeLock().lock();
         try{
             if(planeModels.contains(planeModelToAdd)){
-                throw new PlaneModelDoesntExistsException(planeModelToAdd.getName());
+                throw new PlaneModelAlreadyExistsException(planeModelToAdd.getName());
             }
             planeModels.add(planeModelToAdd);
         }
@@ -53,135 +52,200 @@ public class FlightsManagement {
     }
 
     public void createNewFlight(String planeModel, String flightCode, String dstCode, SortedSet<Ticket> passengers) throws PlaneModelDoesntExistsException{
+        flightsMapLock.writeLock().lock();
         try {
             Flight f = new Flight(getModel(planeModel), flightCode, dstCode, passengers);
-            synchronized (flightsMap) {
+            synchronized(f){
                 if(!checkIfFlightExists(flightCode))
                     flightsMap.put(flightCode, f);
             }
+                
         } catch (PlaneModelDoesntExistsException e) {
             System.out.println(e);
         } catch (FlightAlreadyExistsException e) {
             System.out.println(e);
+        }finally{
+            flightsMapLock.writeLock().unlock();
         }
     }
 
     public FlightStatus checkFlightStatus(String flightCode) throws FlightDoesntExistException {
-        Flight f = flightsMap.get(flightCode);
-        if(f == null)
-            throw new FlightDoesntExistException(flightCode);
-        return f.getFlightStatus();
-    }
-
-    public void confirmFlight(String flightCode) throws FlightDoesntExistException {
-        Flight f = flightsMap.get(flightCode);
-        if(f == null)
-            throw new FlightDoesntExistException(flightCode);
-        synchronized (flightsMap) {
-            f.confirmFlight();
-            flightsMap.put(flightCode, f);
-        }
-    }
-
-    public void cancelFlight(String flightCode) throws FlightDoesntExistException {
-        Flight f = flightsMap.get(flightCode);
-        if(f == null)
-            throw new FlightDoesntExistException(flightCode);
-        synchronized (flightsMap) {
-            flightsMap.put(flightCode, f.cancelFlight());
-        }
-    }
-
-    private boolean checkIfFlightExists(String flightCode) throws FlightAlreadyExistsException{
-        if(flightsMap.containsKey(flightCode))
-            throw new FlightAlreadyExistsException(flightCode);
-        return false;
-    }
-
-    private PlaneModel getModel(String name) throws PlaneModelDoesntExistsException {
-        for(PlaneModel pm : planeModels)
-            if(pm.getName().equals(name))
-                return pm;
-        throw new PlaneModelDoesntExistsException(name);
-    }
-
-    public Flight findFlightByCode(String flightCode){
         flightsMapLock.readLock().lock();
-        try {
-            return flightsMap.get(flightCode);
-        }finally {
+        try{
+            Flight f = flightsMap.get(flightCode);
+            if(f == null)
+                    throw new FlightDoesntExistException(flightCode);
+            synchronized(f){
+                return f.getFlightStatus();
+            }
+        }finally{
             flightsMapLock.readLock().unlock();
         }
     }
 
-    public List<Flight> getPendingFlightsByDestiny(String destiny){
-        List<Flight> ret = new ArrayList<>();        
-        for(Flight f : flightsMap.values()){
-            if(f.getStatus() == FlightStatus.PENDING && f.getDestinyAirportCode().equals(destiny) && f.getCompletion()!= 1.0){
-                ret.add(f);
+    public void confirmFlight(String flightCode) throws FlightDoesntExistException {
+        flightsMapLock.readLock().lock();
+        try {
+            Flight f = flightsMap.get(flightCode);
+            if(f == null)
+                throw new FlightDoesntExistException(flightCode);
+            synchronized (flightsMap) {
+                f.confirmFlight();
+                flightsMap.put(flightCode, f);
             }
+        } finally {
+            flightsMapLock.readLock().unlock();
         }
-        return ret;
+    }
+
+    public void cancelFlight(String flightCode) throws FlightDoesntExistException {
+        flightsMapLock.readLock().lock();
+        flightsCancelledLock.writeLock().lock();
+        try {
+            Flight f = flightsMap.get(flightCode);
+            if(f == null)
+                    throw new FlightDoesntExistException(flightCode);
+            synchronized(f){
+                flightsMap.put(flightCode, f.cancelFlight());
+                flightsCancelled.add(f);
+            }            
+        } finally {
+            flightsMapLock.readLock().unlock();
+            flightsCancelledLock.writeLock().unlock();
+        }
+    }
+
+    private boolean checkIfFlightExists(String flightCode) throws FlightAlreadyExistsException{
+        flightsMapLock.readLock().lock();
+        try {
+            if(flightsMap.containsKey(flightCode))
+                throw new FlightAlreadyExistsException(flightCode);
+            return false;
+        }finally{
+            flightsMapLock.readLock().unlock();
+        }
+    }
+
+    private PlaneModel getModel(String name) throws PlaneModelDoesntExistsException {
+        planeModelsLock.readLock().lock();
+        try{
+            for(PlaneModel pm : planeModels)
+                if(pm.getName().equals(name))
+                    return pm;
+            throw new PlaneModelDoesntExistsException(name);
+        } finally{
+            planeModelsLock.readLock().unlock();
+        }
+    }
+
+
+    public List<Flight> getPendingFlightsByDestiny(String destiny){
+        List<Flight> ret = new ArrayList<>();
+        //TODO: checkiar si hay que sincronizar ret
+        flightsMapLock.readLock().lock();
+        try{
+            for(Flight f : flightsMap.values()){
+                synchronized(f){
+                    if(f.getStatus() == FlightStatus.PENDING && f.getDestinyAirportCode().equals(destiny) && f.getCompletion() < 1.0){
+                        ret.add(f);
+                    }
+                }
+            }
+            return ret;
+        }finally{
+            flightsMapLock.readLock().unlock();
+        }
     }
 
     public Pair<Flight,SeatCategory> getBestAlternativeFlight(List<Flight> flights, SeatCategory cat){
         Flight bestBusiness = null;
         Flight bestPremium = null;
         Flight bestEconomy = null;
-        for (Flight f : flights){
-            if(f.getbTickets() > 0) {
-                if (bestBusiness == null || bestBusiness.getCompletion() > f.getCompletion()) {
-                    bestBusiness = f;
-                }
-            }
-            if(f.getEpTickets() > 0){
-                if(bestPremium == null || bestPremium.getCompletion() > f.getCompletion()){
-                    bestPremium = f;
-                }
-            }
-            if(f.geteTickets() > 0){
-                if(bestEconomy == null || bestEconomy.getCompletion() > f.getCompletion()){
-                    bestEconomy = f;
+        
+        for (Flight f : flights){ 
+            synchronized(bestBusiness){
+                synchronized(bestPremium){
+                    synchronized(bestEconomy){
+                        synchronized(f){
+                            if(f.getbTickets() > 0) {
+                                if (bestBusiness == null || bestBusiness.getCompletion() > f.getCompletion()) {
+                                    bestBusiness = f;
+                                }
+                            }
+                            if(f.getEpTickets() > 0){
+                                if(bestPremium == null || bestPremium.getCompletion() > f.getCompletion()){
+                                    bestPremium = f;
+                                }
+                            }
+                            if(f.geteTickets() > 0){
+                                if(bestEconomy == null || bestEconomy.getCompletion() > f.getCompletion()){
+                                    bestEconomy = f;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        if(cat == SeatCategory.BUSINESS && bestBusiness != null){
-            return new Pair<>(bestBusiness, SeatCategory.BUSINESS);
+        synchronized(bestBusiness){
+            synchronized(bestPremium){
+                synchronized(bestEconomy){
+                    if(cat == SeatCategory.BUSINESS && bestBusiness != null){
+                        return new Pair<>(bestBusiness, SeatCategory.BUSINESS);
+                    }
+                    if(bestPremium != null && cat != SeatCategory.ECONOMY){
+                        return new Pair<>(bestPremium, SeatCategory.PREMIUM_ECONOMY);
+                    }
+                    return new Pair<>(bestEconomy, SeatCategory.ECONOMY);
+                }
+            }
         }
-        if(bestPremium != null && cat != SeatCategory.ECONOMY){
-            return new Pair<>(bestPremium, SeatCategory.PREMIUM_ECONOMY);
-        }
-        return new Pair<>(bestEconomy, SeatCategory.ECONOMY);
     }
-    
-    public void changeTicket(Flight oldFlight, Flight newFlight, String passengerName, SeatCategory newCat) throws TicketNotInFlightException{
-        for(Ticket t : oldFlight.getTickets()){
-            if (t.getPassengerName().equals(passengerName)){
-                oldFlight.getTickets().remove(t);
-                oldFlight.subtractTicketCount(newCat);
-                newFlight.getTickets().add(new Ticket(newCat, passengerName));
-                newFlight.addTicketCount(newCat);
 
+    public void changeTicket(Flight oldFlight, Flight newFlight, String passengerName, SeatCategory newCat) throws TicketNotInFlightException{
+        synchronized(oldFlight){
+            for(Ticket t : oldFlight.getTickets()){
+                synchronized(newFlight){
+                    synchronized(t){
+                        if (t.getPassengerName().equals(passengerName)){
+                            oldFlight.getTickets().remove(t);
+                            oldFlight.subtractTicketCount(newCat);
+                            newFlight.getTickets().add(new Ticket(newCat, passengerName));
+                            newFlight.addTicketCount(newCat);
+                            return;
+                        }
+                    }
+                }
             }
+            throw new TicketNotInFlightException(oldFlight.getFlightCode(), passengerName);
         }
-        throw new TicketNotInFlightException(oldFlight.getFlightCode(), passengerName);
     }
 
     public void forceTicketChange() throws TicketNotInFlightException {
-        for(Flight cf : flightsCancelled) {
-            List<Flight> alternativeFlights = getPendingFlightsByDestiny(cf.getDestinyAirportCode());
-            for(Ticket t : cf.getTickets()){
-                Pair<Flight, SeatCategory> pr = getBestAlternativeFlight(alternativeFlights, t.getCategory());
-                changeTicket(cf, pr.first, t.getPassengerName(), pr.second);
+        flightsCancelledLock.readLock().lock();
+        try{
+            for(Flight cf : flightsCancelled) {
+                synchronized(cf){
+                    List<Flight> alternativeFlights = getPendingFlightsByDestiny(cf.getDestinyAirportCode());
+                    for(Ticket t : cf.getTickets()){
+                        synchronized(t){
+                            //Todo: PR fijarse sis puede causar problema
+                            Pair<Flight, SeatCategory> pr = getBestAlternativeFlight(alternativeFlights, t.getCategory());
+                            changeTicket(cf, pr.first, t.getPassengerName(), pr.second);
+                        }
+                    }
+                }
             }
-            flightsCancelled.remove(cf);
+        }finally{
+            flightsCancelledLock.readLock().unlock();
         }
     }
 
     ////////////////////////////////////////////////////
     //            FlightNotificationService           //
-    ////////////////////////////////////////////////////
-//todo: this
+    ////////////////////////////////////////////////////todo
+    
+        //TODO:
 
     ////////////////////////////////////////////////////
     //            SeatAssignmentService               //
@@ -192,12 +256,16 @@ public class FlightsManagement {
         if(f == null){
             throw new FlightDoesntExistException(flightCode);
         }
-        for(Seat s : f.getSeats()){
-            if(row == s.getRow() && column == s.getColumn()){
-                return !s.getPassengerName().equals("");
+        synchronized(f){
+            for(Seat s : f.getSeats()){
+                synchronized(s){
+                    if(row == s.getRow() && column == s.getColumn()){
+                        return !s.getPassengerName().equals("");
+                    }
+                }
             }
+            throw new SeatDoesntExistException(row,column);
         }
-        throw new SeatDoesntExistException(row,column);
     }
 
 
@@ -206,39 +274,47 @@ public class FlightsManagement {
         if(f == null){
             throw new FlightDoesntExistException(flightCode);
         }
-        if(f.getStatus() != FlightStatus.PENDING){
-            throw new FlightIsNotPendingException(flightCode);
-        }
-        boolean passengerHasTicket = false;
-        SeatCategory cat = null;
-        for (Ticket t : f.getTickets()){
-            if(t.getPassengerName().equals(passengerName)){
-                passengerHasTicket = true;
-                cat = t.getCategory();
-                break;
+        synchronized(f){
+            if(f.getStatus() != FlightStatus.PENDING){
+                throw new FlightIsNotPendingException(flightCode);
             }
-        }
-        if(!passengerHasTicket){
-            throw new PassengerDoesntHaveTicketException(passengerName,flightCode); 
-        }
-
-        for(Seat s : f.getSeats()){
-            if(s.getPassengerName().equals(passengerName)){
-                throw new PassengerIsAlreadySeatedException(passengerName,flightCode) ; 
-            }
-        }
-
-        for(Seat s : f.getSeats()){
-            if(row == s.getRow() && column == s.getColumn()){
-                if(!s.getPassengerName().equals("")){
-                    throw new SeatIsTakenException(flightCode, row, column); 
-                } 
-                if(s.getCategory().compareTo(cat) > 0){
-                    throw new InvalidSeatCategoryException();
+            boolean passengerHasTicket = false;
+            SeatCategory cat = null;
+            for (Ticket t : f.getTickets()){
+                synchronized(t){
+                    if(t.getPassengerName().equals(passengerName)){
+                        passengerHasTicket = true;
+                        cat = t.getCategory();
+                        break;
+                    }
                 }
-                else{
-                    s.setPassengerName(passengerName);
-                    return;
+            }
+            if(!passengerHasTicket){
+                throw new PassengerDoesntHaveTicketException(passengerName,flightCode); 
+            }
+
+            for(Seat s : f.getSeats()){
+                synchronized(s){
+                    if(s.getPassengerName().equals(passengerName)){
+                        throw new PassengerIsAlreadySeatedException(passengerName,flightCode) ; 
+                    }
+                }
+            }
+
+            for(Seat s : f.getSeats()){
+                synchronized(s){
+                    if(row == s.getRow() && column == s.getColumn()){
+                        if(!s.getPassengerName().equals("")){
+                            throw new SeatIsTakenException(flightCode, row, column); 
+                        } 
+                        if(s.getCategory().compareTo(cat) > 0){
+                            throw new InvalidSeatCategoryException();
+                        }
+                        else{
+                            s.setPassengerName(passengerName);
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -267,66 +343,93 @@ public class FlightsManagement {
     }
 
     public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws FlightDoesntExistException, PassengerDoesntHaveTicketException{
-        Flight flight = flightsMap.get(flightCode);
-        if(flight == null){
-            throw new FlightDoesntExistException(flightCode);
-        }
-        boolean passengerExists = false;
-        for(Ticket t : flight.getTickets()){
-            if(t.getPassengerName().equals(passengerName)){
-                passengerExists = true;
+        flightsMapLock.readLock().lock();
+        try{
+            Flight flight = flightsMap.get(flightCode);
+            if(flight == null){
+                throw new FlightDoesntExistException(flightCode);
             }
-        }
-        if(!passengerExists){
-            throw new PassengerDoesntHaveTicketException(passengerName, flightCode);
-        }
-        Map<String, List<Seat>> ret = new HashMap<>();
-        List<Flight> alternativeFlights = getPendingFlightsByDestiny(flightsMap.get(flightCode).getDestinyAirportCode());
-        for(Flight f : alternativeFlights){
-            List<Seat> seats = new ArrayList<>();
-            for(Seat s : f.getSeats()){
-                if(s.getPassengerName().equals("")){
-                    seats.add(s);
-                }
-            }
-            ret.put(f.getFlightCode(),seats);
-        }
-        return ret;
-    }
-
-    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode) throws FlightDoesntExistException, FlightIsNotPendingException, TicketNotInFlightException, FlightIsNotAnAlternativeException{
-        Flight oldFlight = flightsMap.get(oldFlightCode);
-        if(oldFlight == null){
-            throw new FlightDoesntExistException(oldFlightCode);
-        }
-        Flight newFlight = flightsMap.get(newFlightCode);
-        if(newFlight == null){
-            throw new FlightDoesntExistException(newFlightCode);
-        }
-        if(newFlight.getStatus() != FlightStatus.PENDING){
-            throw new FlightIsNotPendingException(newFlightCode);
-        }
-
-        List<Flight> alternativeFlights = getPendingFlightsByDestiny(oldFlight.getDestinyAirportCode());
-        for(Flight f : alternativeFlights){
-            if(f.getFlightCode().equals(newFlight.getFlightCode())){
-                for(Ticket t : f.getTickets()){
-                    if(t.getPassengerName().equals(passengerName)){
-                        if(t.getCategory() == SeatCategory.BUSINESS && newFlight.getbTickets() > 0){
-                            changeTicket(oldFlight, newFlight, passengerName, SeatCategory.BUSINESS);
-                        }
-                        else if(t.getCategory() != SeatCategory.ECONOMY && newFlight.getEpTickets() >0){
-                            changeTicket(oldFlight,newFlight, passengerName, SeatCategory.PREMIUM_ECONOMY);
-                        }
-                        else if(newFlight.geteTickets() > 0){
-                            changeTicket(oldFlight,newFlight, passengerName, SeatCategory.ECONOMY);
+            synchronized(flight){
+                boolean passengerExists = false;
+                for(Ticket t : flight.getTickets()){
+                    synchronized(t){
+                        if(t.getPassengerName().equals(passengerName)){
+                            passengerExists = true;
                         }
                     }
                 }
-                return;
+            
+                if(!passengerExists){
+                    throw new PassengerDoesntHaveTicketException(passengerName, flightCode);
+                }
+                Map<String, List<Seat>> ret = new HashMap<>();
+                List<Flight> alternativeFlights = getPendingFlightsByDestiny(flightsMap.get(flightCode).getDestinyAirportCode());
+                for(Flight f : alternativeFlights){
+                    synchronized(f){
+                        List<Seat> seats = new ArrayList<>();
+                        for(Seat s : f.getSeats()){
+                            synchronized(s){
+                                if(s.getPassengerName().equals("")){
+                                    seats.add(s);
+                                }
+                            }
+                        }
+                        ret.put(f.getFlightCode(),seats);
+                    }
+                }
+                return ret;
+            }
+        }finally{
+            flightsMapLock.readLock().unlock();
+        }
+    }
+
+    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode) throws FlightDoesntExistException, FlightIsNotPendingException, TicketNotInFlightException, FlightIsNotAnAlternativeException{
+        flightsMapLock.readLock().lock();
+        try{
+            Flight oldFlight = flightsMap.get(oldFlightCode);
+            if(oldFlight == null){
+                throw new FlightDoesntExistException(oldFlightCode);
+            }
+            Flight newFlight = flightsMap.get(newFlightCode);
+            if(newFlight == null){
+                throw new FlightDoesntExistException(newFlightCode);
+            }
+            synchronized(newFlight){
+                synchronized(oldFlight){
+                    if(newFlight.getStatus() != FlightStatus.PENDING){
+                        throw new FlightIsNotPendingException(newFlightCode);
+                    }
+                    List<Flight> alternativeFlights = getPendingFlightsByDestiny(oldFlight.getDestinyAirportCode());
+                    for(Flight f : alternativeFlights){
+                        synchronized(f){
+                        if(f.getFlightCode().equals(newFlight.getFlightCode())){
+                            for(Ticket t : f.getTickets()){
+                                synchronized(t){
+                                    if(t.getPassengerName().equals(passengerName)){
+                                        if(t.getCategory() == SeatCategory.BUSINESS && newFlight.getbTickets() > 0){
+                                            changeTicket(oldFlight, newFlight, passengerName, SeatCategory.BUSINESS);
+                                        }
+                                        else if(t.getCategory() != SeatCategory.ECONOMY && newFlight.getEpTickets() >0){
+                                            changeTicket(oldFlight,newFlight, passengerName, SeatCategory.PREMIUM_ECONOMY);
+                                        }
+                                        else if(newFlight.geteTickets() > 0){
+                                            changeTicket(oldFlight,newFlight, passengerName, SeatCategory.ECONOMY);
+                                        }
+                                    }
+                                }
+                            }
+                            return;
+                        }
+                    }
+                    throw new FlightIsNotAnAlternativeException(newFlightCode,passengerName);
+                    }
+                }
             }
         }
-        throw new FlightIsNotAnAlternativeException(newFlightCode,passengerName);
+        finally{
+            flightsMapLock.readLock().unlock();
+        }
     }
 
     ////////////////////////////////////////////////////
@@ -334,33 +437,54 @@ public class FlightsManagement {
     ////////////////////////////////////////////////////
     
     public List<Seat> consultSeatMap(String flightCode) throws FlightDoesntExistException{
-        Flight f = flightsMap.get(flightCode);
-        if(f == null){
-            throw new FlightDoesntExistException(flightCode);
+        flightsMapLock.readLock().lock();
+        try{
+            Flight f = flightsMap.get(flightCode);
+            if(f == null){
+                throw new FlightDoesntExistException(flightCode);
+            }
+            synchronized(f){
+                return f.getSeats();
+            }
+        }finally{
+            flightsMapLock.readLock().unlock();
         }
-        return f.getSeats();
     }
 
     public List<Seat> consultSeatMap(String flightCode, int row) throws FlightDoesntExistException, SeatRowDoesntExistException{
-        Flight f = flightsMap.get(flightCode);
-        if(f == null){
-            throw new FlightDoesntExistException(flightCode);
+        flightsMapLock.readLock().lock();
+        try{
+            Flight f = flightsMap.get(flightCode);
+            if(f == null){
+                throw new FlightDoesntExistException(flightCode);
+            }
+            synchronized(f){
+                List<Seat> toret = f.getSeats().stream().filter(s -> s.getRow() == row).collect(Collectors.toList());
+                if(toret.size() > 0)
+                    return toret;
+                throw new SeatRowDoesntExistException(flightCode,row);
+            }
+        }finally{
+            flightsMapLock.readLock().unlock();
         }
-        List<Seat> toret = f.getSeats().stream().filter(s -> s.getRow() == row).collect(Collectors.toList());
-        if(toret.size() > 0)
-            return toret;
-        throw new SeatRowDoesntExistException(flightCode,row); //todo Exception
     }
 
     public List<Seat> consultSeatMap(String flightCode, SeatCategory cat) throws FlightDoesntExistException, SeatCategoryDoesntExistException{
-        Flight f = flightsMap.get(flightCode);
-        if(f == null){
-            throw new FlightDoesntExistException(flightCode);
+        flightsMapLock.readLock().lock();
+        try {
+            Flight f = flightsMap.get(flightCode);
+            if(f == null){
+                throw new FlightDoesntExistException(flightCode);
+            }
+            synchronized(f){
+                List<Seat> toret = f.getSeats().stream().filter(s-> s.getCategory() == cat).collect(Collectors.toList());
+                if(toret.size() > 0)
+                    return toret;
+                throw new SeatCategoryDoesntExistException(flightCode, categoryToString(cat));
+            }
+        } finally {
+            flightsMapLock.readLock().unlock();
         }
-        List<Seat> toret = f.getSeats().stream().filter(s-> s.getCategory() == cat).collect(Collectors.toList());
-        if(toret.size() > 0)
-            return toret;
-        throw new SeatCategoryDoesntExistException(flightCode, categoryToString(cat));
     }
 
 
@@ -377,9 +501,3 @@ public class FlightsManagement {
         return null;
     }
 }
-
-/* Comentarios de Nava 
-* holita
-* 
-* 
-*/

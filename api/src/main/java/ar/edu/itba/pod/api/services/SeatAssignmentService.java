@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface SeatAssignmentService extends Remote {
 
-    boolean seatIsOccupied(String flightCode, int row, char column) throws RemoteException;
+    String seatIsOccupied(String flightCode, int row, char column) throws RemoteException;
 
     void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column) throws RemoteException;
 

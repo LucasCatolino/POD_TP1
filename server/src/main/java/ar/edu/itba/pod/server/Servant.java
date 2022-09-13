@@ -82,7 +82,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public boolean seatIsOccupied(String flightCode, int row, char column)  throws RemoteException{
+    public String seatIsOccupied(String flightCode, int row, char column)  throws RemoteException{
         try {
             return fm.seatIsOccupied(flightCode, row, column);
         } catch (FlightDoesntExistException e) {

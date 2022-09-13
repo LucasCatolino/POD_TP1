@@ -13,7 +13,7 @@ public class Seat implements Serializable{
         this.row = row;
         this.column = column;
         this.category = category;
-        this.passengerName = "";
+        this.passengerName = "FREE";
     }
     // Getters & Setters
     public int getRow() { return row; }

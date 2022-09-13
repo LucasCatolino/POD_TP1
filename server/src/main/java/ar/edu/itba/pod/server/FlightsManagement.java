@@ -251,7 +251,7 @@ public class FlightsManagement {
     //            SeatAssignmentService               //
     ////////////////////////////////////////////////////
 
-    public boolean seatIsOccupied(String flightCode, int row, char column) throws FlightDoesntExistException, SeatDoesntExistException {
+    public String seatIsOccupied(String flightCode, int row, char column) throws FlightDoesntExistException, SeatDoesntExistException {
         Flight f = flightsMap.get(flightCode);
         if(f == null){
             throw new FlightDoesntExistException(flightCode);
@@ -260,7 +260,7 @@ public class FlightsManagement {
             for(Seat s : f.getSeats()){
                 synchronized(s){
                     if(row == s.getRow() && column == s.getColumn()){
-                        return !s.getPassengerName().equals("");
+                        return s.getPassengerName();
                     }
                 }
             }
@@ -304,7 +304,7 @@ public class FlightsManagement {
             for(Seat s : f.getSeats()){
                 synchronized(s){
                     if(row == s.getRow() && column == s.getColumn()){
-                        if(!s.getPassengerName().equals("")){
+                        if(!s.getPassengerName().equals("FREE")){
                             throw new SeatIsTakenException(flightCode, row, column); 
                         } 
                         if(s.getCategory().compareTo(cat) > 0){
@@ -330,7 +330,7 @@ public class FlightsManagement {
         }
         for(Seat s : f.getSeats()){
             if(s.getPassengerName().equals(passengerName)){
-                s.setPassengerName("");
+                s.setPassengerName("FREE");
                 return;
             }
         }
@@ -369,7 +369,7 @@ public class FlightsManagement {
                         List<Seat> seats = new ArrayList<>();
                         for(Seat s : f.getSeats()){
                             synchronized(s){
-                                if(s.getPassengerName().equals("")){
+                                if(s.getPassengerName().equals("FREE")){
                                     seats.add(s);
                                 }
                             }

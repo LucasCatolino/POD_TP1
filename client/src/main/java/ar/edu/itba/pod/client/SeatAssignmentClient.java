@@ -85,7 +85,12 @@ public class SeatAssignmentClient {
                 case "status":
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol")){
                         //TODO: revisar el ultimo parametro y si hay que verificar que ingresen algo valido
-                        boolean ret = service.seatIsOccupied(cl.getOptionValue("Dflight"), Integer.parseInt(cl.getOptionValue("Drow")), (cl.getOptionValue("Dcol").charAt(0)));
+                        String ret = service.seatIsOccupied(cl.getOptionValue("Dflight"), Integer.parseInt(cl.getOptionValue("Drow")), (cl.getOptionValue("Dcol").charAt(0)));
+                        if(ret.equals("FREE")){
+                            System.out.println("Seat " + cl.getOptionValue("Drow") +  cl.getOptionValue("Dcol") + " is " + ret );
+                        }else{
+                            System.out.println("Seat " + cl.getOptionValue("Drow") +  cl.getOptionValue("Dcol") + " is ASSIGNED to " + ret );
+                        }
                     }
                 case "assign":
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol") && cl.hasOption("Dpassenger")){

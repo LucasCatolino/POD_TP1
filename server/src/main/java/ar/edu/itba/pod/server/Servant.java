@@ -23,141 +23,101 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     private static final FlightsManagement fm = new FlightsManagement();
 
     @Override
-    public void addPlaneModel(String modelName, int businessRows, int businessCols, int epRows, int epCols, int econRows, int econCols) throws RemoteException {
-        try {
-            fm.createNewPlaneModel(modelName, businessRows, businessCols, epRows, epCols, econRows, econCols);
-        } catch (PlaneModelAlreadyExistsException e) {
-            throw new RuntimeException(e);
-        } 
+    public void addPlaneModel(String modelName, int businessRows, int businessCols, int epRows, int epCols, int econRows, int econCols) throws RemoteException, PlaneModelAlreadyExistsException {
+        fm.createNewPlaneModel(modelName, businessRows, businessCols, epRows, epCols, econRows, econCols);
+        logger.info("model {} added", modelName);
     }
 
     @Override
-    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException {
-        try {
-            fm.createNewFlight(planeModelName, flightCode, destinyAirportCode, tickets);
-        } catch (PlaneModelDoesntExistsException e) {
-            throw new RuntimeException(e);
-        }
+    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException, PlaneModelDoesntExistsException {
+        fm.createNewFlight(planeModelName, flightCode, destinyAirportCode, tickets);
+        logger.info("Flight {} added", flightCode);
     }
 
     @Override
-    public FlightStatus checkFlightStatus(String flightCode) throws RemoteException {
-        try {
-            return fm.checkFlightStatus(flightCode);
-        } catch (FlightDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public FlightStatus checkFlightStatus(String flightCode) throws RemoteException, FlightDoesntExistException {
+        return fm.checkFlightStatus(flightCode);
+        logger.info("Checked status for flight {}", flightCode);
     }
 
     @Override
-    public void confirmFlight(String flightCode) throws RemoteException {
-        try {
-            fm.confirmFlight(flightCode);
-        } catch (FlightDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
+        fm.confirmFlight(flightCode);
+        logger.info("Confirmed flight {}", flightcode);
     }
 
     @Override
-    public void cancelFlight(String flightCode) throws RemoteException {
-        try {
-            fm.cancelFlight(flightCode);
-        } catch (FlightDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
+    
+        fm.cancelFlight(flightCode);
+        logger.info("Flight {} cancelled",flightCode);
+        
     }
 
     @Override
-    public void forceTicketChange()  throws RemoteException {
-        try {
-            fm.forceTicketChange();
-        } catch (TicketNotInFlightException e) {
-            throw new RuntimeException(e);
-        }
+    public void forceTicketChange()  throws RemoteException, TicketNotInFlightException {
+        fm.forceTicketChange();
+        logger.info("Forced ticket change");
     }
 
     @Override
     public void registerPassengerToNotify(String flightCode, String passengerName) throws RemoteException {
-
+        //TODO:
     }
 
     @Override
-    public String seatIsOccupied(String flightCode, int row, char column)  throws RemoteException{
-        try {
-            return fm.seatIsOccupied(flightCode, row, column);
-        } catch (FlightDoesntExistException e) {
-            throw new RuntimeException(e);
-        } catch (SeatDoesntExistException e) {
-            throw new RuntimeException(e);
+    public String seatIsOccupied(String flightCode, int row, char column)  throws RemoteException, FlightDoesntExistException, SeatDoesntExistException {
+
+        String ret = fm.seatIsOccupied(flightCode, row, column);
+        if(ret.equals("FREE")){
+            logger.info("Flight {} Seat {}{} is {}", flightCode,row,column,ret);
         }
+        else{
+            logger.info("Flight {} Seat {}{} is occupied by {}",flightCode,row,column,ret);
+        }
+        return ret;
+        
     }
 
     @Override
-    public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException{
-        try {
-            fm.assignNewSeatToPassenger(flightCode, passengerName, row, column);
-        } catch (FlightDoesntExistException | FlightIsNotPendingException | PassengerDoesntHaveTicketException
-                | PassengerIsAlreadySeatedException | SeatIsTakenException | InvalidSeatCategoryException e) {
-            throw new RuntimeException(e);
-        }
+    public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerDoesntHaveTicketException, PassengerDoesntHaveTicketException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException {
+        fm.assignNewSeatToPassenger(flightCode, passengerName, row, column);
+        logger.info("Assigned seat {}{} for passenger {} in flight {}", row, column, passenger, flightcode);
     }
 
     @Override
-    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column)  throws RemoteException{
-        try {
-            fm.resitPassenger(flightCode, passengerName, row, column);
-        } catch (FlightDoesntExistException | FlightIsNotPendingException | PassengerDoesntHaveTicketException
-                | PassengerIsAlreadySeatedException | SeatIsTakenException | InvalidSeatCategoryException
-                | PassengerIsNotSeatedException e) {
-            throw new RuntimeException(e);
-        }
+    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column)  throws RemoteException,FlightDoesntExistException, FlightIsNotPendingException, PassengerIsAlreadySeatedException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, PassengerIsNotSeatedException {
+        fm.resitPassenger(flightCode, passengerName, row, column);
+        logger.info("Passenger {} of flight {} was move to seat {}{}", passengerName, flightCode, row, column);
     }
 
     @Override
-    public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException {
-        try {
-            return fm.listAlternativeFlightSeats(flightCode, passengerName);
-        } catch (FlightDoesntExistException e){
-            throw new RuntimeException(e);
-        } catch (PassengerDoesntHaveTicketException e){
-            throw new RuntimeException(e);
-        }
+    public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException, FlightDoesntExistException, PassengerDoesntHaveTicketException {
+        return fm.listAlternativeFlightSeats(flightCode, passengerName);
+        logger.info("Listing alternative flights for {}", passengerName);
     }
 
     @Override
-    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException{
-        try {
-            fm.changePassengerFlight(passengerName, oldFlightCode, newFlightCode);
-        } catch (FlightDoesntExistException | FlightIsNotPendingException | TicketNotInFlightException
-                | FlightIsNotAnAlternativeException e) {
-            throw new RuntimeException(e);
-        }
+    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException,TicketNotInFlightException, FlightIsNotAnAlternativeException{
+        fm.changePassengerFlight(passengerName, oldFlightCode, newFlightCode);
+        logger.info("Changed {}'s flight {} to {}", passengerName, oldFlightCode,newFlightCode);
     }
 
     @Override
-    public List<Seat> consultSeatMap(String flightCode)  throws RemoteException{
-        try {
-            return fm.consultSeatMap(flightCode);
-        } catch (FlightDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public List<Seat> consultSeatMap(String flightCode)  throws RemoteException, FlightDoesntExistException {
+        return fm.consultSeatMap(flightCode);
+        logger.info("SeatMap for flight {}", flightcode);
     }
 
     @Override
-    public List<Seat> consultSeatMap(String flightCode, SeatCategory category)  throws RemoteException{
-        try {
-            return fm.consultSeatMap(flightCode, category);
-        } catch (FlightDoesntExistException | SeatCategoryDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public List<Seat> consultSeatMap(String flightCode, SeatCategory category)  throws RemoteException, FlightDoesntExistException, SeatCategoryDoesntExistException {
+        return fm.consultSeatMap(flightCode, category);
+        logger.info("SeatMap for flight {} with category {}", flightcode, category);
     }
 
     @Override
-    public List<Seat> consultSeatMap(String flightCode, int row)  throws RemoteException{
-        try {
-            return fm.consultSeatMap(flightCode, row);
-        } catch (FlightDoesntExistException | SeatRowDoesntExistException e) {
-            throw new RuntimeException(e);
-        }
+    public List<Seat> consultSeatMap(String flightCode, int row)  throws RemoteException, FlightDoesntExistException, SeatRowDoesntExistException {
+        return fm.consultSeatMap(flightCode, row);
+        logger.info("SeatMap for flight {} of row {}", flightcode, row);
     }
 }

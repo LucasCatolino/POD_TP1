@@ -1,10 +1,17 @@
 package ar.edu.itba.pod.client;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.List;
 
 
+import ar.edu.itba.pod.api.entities.PlaneModel;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -60,6 +67,85 @@ public class FlightManagementClient {
             switch(actionSelected){
                 //TODO: hacer manejo de CSV para estos dos parametros
                 case "model":
+                    if(cl.hasOption("DinPath")){
+                        try {
+                            BufferedReader reader = new BufferedReader(new FileReader(cl.getOptionValue("DinPath")));
+                            reader.readLine();
+
+                           
+                            Integer brows = null, bcols = null, eprows = null, epcols = null, erows = null, ecols = null;
+                            int added = 0;
+
+                            String l;
+                            while((l = reader.readLine()) != null){
+                                String[] values = l.split(";");
+                                //nombre;CATE1#12#1;CATE2...
+                                //service.addPlaneModel(values[0],0,10,1,1,1,1);
+                                //models.add(values);
+
+                                //leo a partir de las categorias
+                                categoriesLoop:
+                                for(int i = 1; i < values.length; i++){
+                                    String[] categoryInfo = values[i].split("#");
+                                    switch (categoryInfo[0]){
+                                        case "BUSINESS":
+                                            brows = Integer.parseInt(categoryInfo[1]);
+                                            bcols = Integer.parseInt(categoryInfo[2]);
+                                            if(brows <= 0 || bcols <= 0) {
+                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                break categoriesLoop;
+                                            }
+                                            break;
+                                        case "PREMIUM_ECONOMY":
+                                            eprows = Integer.parseInt(categoryInfo[1]);
+                                            epcols = Integer.parseInt(categoryInfo[2]);
+                                            if(eprows <= 0 || epcols <= 0) {
+                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                break categoriesLoop;
+                                            }
+                                            break;
+                                        case "ECONOMY":
+                                            erows = Integer.parseInt(categoryInfo[1]);
+                                            ecols = Integer.parseInt(categoryInfo[2]);
+                                            if(erows <= 0 || ecols <= 0) {
+                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                break categoriesLoop;
+                                            }
+                                            break;
+                                    }
+ 
+                                }
+                                if(brows == null){
+                                    brows = 0;
+                                    bcols = 0;
+                                }
+                                if(eprows == null){
+                                    eprows = 0;
+                                    epcols = 0;
+                                }
+                                if(erows == null){
+                                    erows = 0;
+                                    ecols = 0;
+                                }
+
+                                if(brows + eprows + erows == 0){
+                                    System.out.println("Cannot add flight " + values[0] + ".");
+                                    return;
+                                }
+
+                                try{
+                                    service.addPlaneModel(values[0], brows, bcols, eprows, epcols, erows, ecols);
+                                    added++;
+                                } catch(PlaneModelAlreadyExistsException e){
+                                    System.out.println(e);
+                                }
+                            }
+
+
+                        } catch (IOException e) {
+                            throw new RuntimeException("Error reading models File.");
+                        }
+                    }
                 case "flights":
                 case "status":
                     if(cl.hasOption("Dflight")){
@@ -95,6 +181,8 @@ public class FlightManagementClient {
         }
         return "Unknown";
     }
+
+
 }
 
 // if(cl.hasOption("DserverAddress")){

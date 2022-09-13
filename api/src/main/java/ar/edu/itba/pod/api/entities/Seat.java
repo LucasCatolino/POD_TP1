@@ -1,6 +1,8 @@
 package ar.edu.itba.pod.api.entities;
 
-public class Seat {
+import java.io.Serializable;
+
+public class Seat implements Serializable{
     // Variables
     private int row;
     private char column;

@@ -1,6 +1,8 @@
 package ar.edu.itba.pod.api.entities;
 
-public class Ticket implements Comparable{
+import java.io.Serializable;
+
+public class Ticket implements Comparable, Serializable{
     private SeatCategory category;
     private String passengerName;
 
@@ -24,8 +26,9 @@ public class Ticket implements Comparable{
     public void setPassengerName(String passengerName) {
         this.passengerName = passengerName;
     }
-
-    public int compareTo(Ticket t){
+    @Override
+    public int compareTo(Object o) {
+        Ticket t = (Ticket) o;
         return this.passengerName.compareTo(t.passengerName);
     }
     

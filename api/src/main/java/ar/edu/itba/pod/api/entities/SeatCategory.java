@@ -1,6 +1,8 @@
 package ar.edu.itba.pod.api.entities;
 
-public enum SeatCategory {
+import java.io.Serializable;
+
+public enum SeatCategory implements Serializable{
     ECONOMY,
     PREMIUM_ECONOMY,
     BUSINESS

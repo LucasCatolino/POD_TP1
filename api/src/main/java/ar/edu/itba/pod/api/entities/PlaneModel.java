@@ -1,8 +1,9 @@
 package ar.edu.itba.pod.api.entities;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class PlaneModel {
+public class PlaneModel implements Serializable{
     int businessRows, businessCols, epRows, epCols, econRows, econCols;
     String name;
 

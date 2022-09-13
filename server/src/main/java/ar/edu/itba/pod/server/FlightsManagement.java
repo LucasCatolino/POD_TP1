@@ -37,7 +37,7 @@ public class FlightsManagement {
     ////////////////////////////////////////////////////
     //          FlightManagementService               //
     ////////////////////////////////////////////////////
-    public void createNewPlaneModel(String name, int brows, int bcols, int eprows, int epcols, int erows, int ecols) throws PlaneModelAlreadyExistsException {
+    public void createNewPlaneModel(String name, int brows, int bcols, int eprows, int epcols, int erows, int ecols) throws PlaneModelAlreadyExistsException  {
         PlaneModel planeModelToAdd = new PlaneModel(name,brows,bcols,eprows,epcols,erows,ecols);
         planeModelsLock.writeLock().lock();
         try{
@@ -486,7 +486,6 @@ public class FlightsManagement {
             flightsMapLock.readLock().unlock();
         }
     }
-
 
     public String categoryToString(SeatCategory cat){
         if(SeatCategory.BUSINESS == cat){

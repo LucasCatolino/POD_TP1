@@ -2,10 +2,11 @@ package ar.edu.itba.pod.api.entities;
 
 import java.util.Collection;
 import java.util.SortedSet;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Flight implements Comparable {
+public class Flight implements Comparable, Serializable {
     // Variables
     PlaneModel model;
     List<Seat> seats;

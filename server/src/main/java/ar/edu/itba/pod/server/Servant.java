@@ -4,15 +4,11 @@ import ar.edu.itba.pod.api.entities.FlightStatus;
 import ar.edu.itba.pod.api.entities.Seat;
 import ar.edu.itba.pod.api.entities.SeatCategory;
 import ar.edu.itba.pod.api.entities.Ticket;
-import ar.edu.itba.pod.api.exceptions.FlightDoesntExistException;
-import ar.edu.itba.pod.api.exceptions.PlaneModelDoesntExistsException;
-import ar.edu.itba.pod.api.exceptions.TicketNotInFlightException;
-import ar.edu.itba.pod.api.exceptions.PassengerDoesntHaveTicketException;
+import ar.edu.itba.pod.api.exceptions.*;
 import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
 import ar.edu.itba.pod.api.services.SeatAssignmentService;
 import ar.edu.itba.pod.api.services.SeatMapConsultationService;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +26,9 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     public void addPlaneModel(String modelName, int businessRows, int businessCols, int epRows, int epCols, int econRows, int econCols) throws RemoteException {
         try {
             fm.createNewPlaneModel(modelName, businessRows, businessCols, epRows, epCols, econRows, econCols);
-        } catch (PlaneModelDoesntExistsException e) {
+        } catch (PlaneModelAlreadyExistsException e) {
             throw new RuntimeException(e);
-        }
+        } 
     }
 
     @Override
@@ -87,17 +83,34 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
 
     @Override
     public boolean seatIsOccupied(String flightCode, int row, char column)  throws RemoteException{
-        return false;
+        try {
+            return fm.seatIsOccupied(flightCode, row, column);
+        } catch (FlightDoesntExistException e) {
+            throw new RuntimeException(e);
+        } catch (SeatDoesntExistException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException{
-
+        try {
+            fm.assignNewSeatToPassenger(flightCode, passengerName, row, column);
+        } catch (FlightDoesntExistException | FlightIsNotPendingException | PassengerDoesntHaveTicketException
+                | PassengerIsAlreadySeatedException | SeatIsTakenException | InvalidSeatCategoryException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column)  throws RemoteException{
-
+        try {
+            fm.resitPassenger(flightCode, passengerName, row, column);
+        } catch (FlightDoesntExistException | FlightIsNotPendingException | PassengerDoesntHaveTicketException
+                | PassengerIsAlreadySeatedException | SeatIsTakenException | InvalidSeatCategoryException
+                | PassengerIsNotSeatedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -113,21 +126,38 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
 
     @Override
     public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException{
-        
+        try {
+            fm.changePassengerFlight(passengerName, oldFlightCode, newFlightCode);
+        } catch (FlightDoesntExistException | FlightIsNotPendingException | TicketNotInFlightException
+                | FlightIsNotAnAlternativeException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<Seat> consultSeatMap(String flightCode)  throws RemoteException{
-        return null;
+        try {
+            return fm.consultSeatMap(flightCode);
+        } catch (FlightDoesntExistException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<Seat> consultSeatMap(String flightCode, SeatCategory category)  throws RemoteException{
-        return null;
+        try {
+            return fm.consultSeatMap(flightCode, category);
+        } catch (FlightDoesntExistException | SeatCategoryDoesntExistException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<Seat> consultSeatMap(String flightCode, int row)  throws RemoteException{
-        return null;
+        try {
+            return fm.consultSeatMap(flightCode, row);
+        } catch (FlightDoesntExistException | SeatRowDoesntExistException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

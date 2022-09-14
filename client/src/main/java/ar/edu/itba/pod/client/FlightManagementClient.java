@@ -216,6 +216,7 @@ public class FlightManagementClient {
         }
         return "Unknown";
     }
+    
     public static SeatCategory getCategory(String category) throws IOException {
         if(category.equals("BUSINESS")){
             return SeatCategory.BUSINESS;

@@ -15,7 +15,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import ar.edu.itba.pod.api.entities.Seat;
+import ar.edu.itba.pod.api.entities.*;
 import ar.edu.itba.pod.api.services.SeatAssignmentService;
 
 public class SeatAssignmentClient {
@@ -104,7 +104,8 @@ public class SeatAssignmentClient {
                 case "alternatives":
                     if(cl.hasOption("Dpassenger")){
                         //TODO: ver en la consigna como imprimir esto (no tenemos el destiny y se necesita, asique deberiamos hacer un get a la api)
-                        Map<String, List<Seat>> map = service.listAlternativeFlightSeats(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"));
+                        List<Flight> list = service.listAlternativeFlightSeats(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"));
+                        printAlternativeSeats(list);
                     }
                 case "changeTicket":
                     if(cl.hasOption("Dpassenger") && cl.hasOption("DoriginalFlight")){
@@ -136,5 +137,56 @@ public class SeatAssignmentClient {
         } catch (FlightIsNotPendingException e) {
             e.printStackTrace();
         }
+    }
+
+
+    private static Integer getFreeSeats(Flight f, SeatCategory cat){
+        if(cat == SeatCategory.BUSINESS){
+            System.out.println(f.getModel().getBusinessSeats() - f.getbTickets());
+            return f.getModel().getBusinessSeats() - f.getbTickets();
+        }
+        if(cat == SeatCategory.PREMIUM_ECONOMY){
+            return f.getModel().getEconomyPremiumSeats() - f.getEpTickets();
+        }
+        return f.getModel().getEconomySeats() - f.geteTickets();
+    }
+    
+    private static void sortFlightsByFreeSeats(List<Flight> flights, SeatCategory cat){
+        flights.sort((f1,f2) -> {
+            if(getFreeSeats(f1,cat).equals(getFreeSeats(f2, cat))){
+                return f1.getFlightCode().compareTo(f2.getFlightCode());
+            }
+            return getFreeSeats(f1,cat).compareTo(getFreeSeats(f2, cat));
+            });
+        }
+
+    private static void printFreeSeats(List<Flight> flights, SeatCategory cat){
+        sortFlightsByFreeSeats(flights, cat);
+        for(Flight f : flights){
+            if(getFreeSeats(f,cat) != 0){
+                System.out.println(f.getDestinyAirportCode() + " | " + f.getFlightCode() + " | " + getFreeSeats(f, cat) + " " + getCategoryString(cat));
+            }
+            else
+                break;
+        }
+    }
+
+    private static void printAlternativeSeats(List<Flight> flights){
+        printFreeSeats(flights,SeatCategory.BUSINESS);
+        printFreeSeats(flights,SeatCategory.PREMIUM_ECONOMY);
+        printFreeSeats(flights,SeatCategory.ECONOMY);
+    }
+
+
+    public static String getCategoryString(SeatCategory cat){
+        if(SeatCategory.BUSINESS == cat){
+            return new String("BUSINESS");
+        }if(SeatCategory.PREMIUM_ECONOMY == cat){
+            return new String("PREMIUN_ECONOMY");
+        }
+        if (SeatCategory.ECONOMY == cat){
+            return new String("ECONOMY");
+        }
+        return null;
     }
 }

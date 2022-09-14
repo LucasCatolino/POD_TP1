@@ -363,7 +363,7 @@ public class FlightsManagement {
         assignNewSeatToPassenger(flightCode, passengerName, row, column);
     }
 
-    public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws FlightDoesntExistException, PassengerDoesntHaveTicketException{
+    public List<Flight> listAlternativeFlightSeats(String flightCode, String passengerName) throws FlightDoesntExistException, PassengerDoesntHaveTicketException{
         flightsMapLock.readLock().lock();
         try{
             Flight flight = flightsMap.get(flightCode);
@@ -379,26 +379,10 @@ public class FlightsManagement {
                         }
                     }
                 }
-            
                 if(!passengerExists){
                     throw new PassengerDoesntHaveTicketException(passengerName, flightCode);
                 }
-                Map<String, List<Seat>> ret = new HashMap<>();
-                List<Flight> alternativeFlights = getPendingFlightsByDestiny(flightsMap.get(flightCode).getDestinyAirportCode());
-                for(Flight f : alternativeFlights){
-                    synchronized(f){
-                        List<Seat> seats = new ArrayList<>();
-                        for(Seat s : f.getSeats()){
-                            synchronized(s){
-                                if(s.getPassengerName().equals("FREE")){
-                                    seats.add(s);
-                                }
-                            }
-                        }
-                        ret.put(f.getFlightCode(),seats);
-                    }
-                }
-                return ret;
+                return getPendingFlightsByDestiny(flightsMap.get(flightCode).getDestinyAirportCode());
             }
         }finally{
             flightsMapLock.readLock().unlock();

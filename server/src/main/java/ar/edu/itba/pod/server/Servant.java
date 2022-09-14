@@ -1,9 +1,6 @@
 package ar.edu.itba.pod.server;
 
-import ar.edu.itba.pod.api.entities.FlightStatus;
-import ar.edu.itba.pod.api.entities.Seat;
-import ar.edu.itba.pod.api.entities.SeatCategory;
-import ar.edu.itba.pod.api.entities.Ticket;
+import ar.edu.itba.pod.api.entities.*;
 import ar.edu.itba.pod.api.exceptions.*;
 import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
@@ -92,7 +89,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException, FlightDoesntExistException, PassengerDoesntHaveTicketException {
+    public List<Flight> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException, FlightDoesntExistException, PassengerDoesntHaveTicketException {
         return fm.listAlternativeFlightSeats(flightCode, passengerName);
         //logger.info("Listing alternative flights for {}", passengerName);
     }

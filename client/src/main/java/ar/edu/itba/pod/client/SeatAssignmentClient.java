@@ -142,13 +142,12 @@ public class SeatAssignmentClient {
 
     private static Integer getFreeSeats(Flight f, SeatCategory cat){
         if(cat == SeatCategory.BUSINESS){
-            System.out.println(f.getModel().getBusinessSeats() - f.getbTickets());
-            return f.getModel().getBusinessSeats() - f.getbTickets();
+            return f.getbTickets();
         }
         if(cat == SeatCategory.PREMIUM_ECONOMY){
-            return f.getModel().getEconomyPremiumSeats() - f.getEpTickets();
+            return f.getEpTickets();
         }
-        return f.getModel().getEconomySeats() - f.geteTickets();
+        return f.geteTickets();
     }
     
     private static void sortFlightsByFreeSeats(List<Flight> flights, SeatCategory cat){
@@ -156,7 +155,7 @@ public class SeatAssignmentClient {
             if(getFreeSeats(f1,cat).equals(getFreeSeats(f2, cat))){
                 return f1.getFlightCode().compareTo(f2.getFlightCode());
             }
-            return getFreeSeats(f1,cat).compareTo(getFreeSeats(f2, cat));
+            return getFreeSeats(f2,cat).compareTo(getFreeSeats(f1, cat));
             });
         }
 
@@ -182,7 +181,7 @@ public class SeatAssignmentClient {
         if(SeatCategory.BUSINESS == cat){
             return new String("BUSINESS");
         }if(SeatCategory.PREMIUM_ECONOMY == cat){
-            return new String("PREMIUN_ECONOMY");
+            return new String("PREMIUM_ECONOMY");
         }
         if (SeatCategory.ECONOMY == cat){
             return new String("ECONOMY");

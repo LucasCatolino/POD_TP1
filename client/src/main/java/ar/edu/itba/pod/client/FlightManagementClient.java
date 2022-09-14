@@ -73,22 +73,26 @@ public class FlightManagementClient {
                             BufferedReader reader = new BufferedReader(new FileReader(cl.getOptionValue("DinPath")));
                             
                             reader.readLine();
-                            Integer brows = null, bcols = null, eprows = null, epcols = null, erows = null, ecols = null;
+                            int brows = 0, bcols = 0, eprows = 0, epcols = 0, erows = 0, ecols = 0;
                             int added = 0;
 
                             String l;
+                            int flag;
                             while((l = reader.readLine()) != null){
+                                flag = 0;
+                                //AFK;BUSI#1#2,,ECO#3#2
                                 String[] values = l.split(";");
+                                String[] cats = values[1].split(",");
                                 //leo a partir de las categorias
                                 categoriesLoop:
-                                for(int i = 1; i < values.length; i++){
-                                    String[] categoryInfo = values[i].split("#");
+                                for(String c : cats){
+                                    String[] categoryInfo = c.split("#");
                                     switch (categoryInfo[0]){
                                         case "BUSINESS":
                                             brows = Integer.parseInt(categoryInfo[1]);
                                             bcols = Integer.parseInt(categoryInfo[2]);
                                             if(brows <= 0 || bcols <= 0) {
-                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                flag = 1;
                                                 break categoriesLoop;
                                             }
                                             break;
@@ -96,7 +100,7 @@ public class FlightManagementClient {
                                             eprows = Integer.parseInt(categoryInfo[1]);
                                             epcols = Integer.parseInt(categoryInfo[2]);
                                             if(eprows <= 0 || epcols <= 0) {
-                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                flag = 1;
                                                 break categoriesLoop;
                                             }
                                             break;
@@ -104,33 +108,52 @@ public class FlightManagementClient {
                                             erows = Integer.parseInt(categoryInfo[1]);
                                             ecols = Integer.parseInt(categoryInfo[2]);
                                             if(erows <= 0 || ecols <= 0) {
-                                                System.out.println("Cannot add flight " + values[0] + ".");
+                                                flag = 1;
+                                                break categoriesLoop;
+                                            }
+                                            break;
+
+
+                                    }
+                                }
+                                /*for(int i = 1; i < values.length; i++){
+                                    String[] categoryInfo = values[i].split("#");
+                                    switch (categoryInfo[0]){
+                                        case "BUSINESS":
+                                            brows = Integer.parseInt(categoryInfo[1]);
+                                            bcols = Integer.parseInt(categoryInfo[2]);
+                                            if(brows <= 0 || bcols <= 0) {
+                                                flag = 1;
+                                                break categoriesLoop;
+                                            }
+                                            break;
+                                        case "PREMIUM_ECONOMY":
+                                            eprows = Integer.parseInt(categoryInfo[1]);
+                                            epcols = Integer.parseInt(categoryInfo[2]);
+                                            if(eprows <= 0 || epcols <= 0) {
+                                                flag = 1;
+                                                break categoriesLoop;
+                                            }
+                                            break;
+                                        case "ECONOMY":
+                                            erows = Integer.parseInt(categoryInfo[1]);
+                                            ecols = Integer.parseInt(categoryInfo[2]);
+                                            if(erows <= 0 || ecols <= 0) {
+                                                flag = 1;
                                                 break categoriesLoop;
                                             }
                                             break;
                                     }
-                                }
-                                if(brows == null){
-                                    brows = 0;
-                                    bcols = 0;
-                                }
-                                if(eprows == null){
-                                    eprows = 0;
-                                    epcols = 0;
-                                }
-                                if(erows == null){
-                                    erows = 0;
-                                    ecols = 0;
-                                }
-                                if(brows + eprows + erows == 0){
-                                    System.out.println("Cannot add flight " + values[0] + ".");
-                                    return;
-                                }
-                                try{
-                                    service.addPlaneModel(values[0], brows, bcols, eprows, epcols, erows, ecols);
-                                    added++;
-                                } catch(PlaneModelAlreadyExistsException e){
-                                    System.out.println("Cannot add model " + values[0]);
+                                }*/
+                                if(flag == 1){
+                                    System.out.println("Cannot add model " + values[0] + ".");
+                                } else {
+                                    try{
+                                        service.addPlaneModel(values[0], brows, bcols, eprows, epcols, erows, ecols);
+                                        added++;
+                                    } catch(PlaneModelAlreadyExistsException e){
+                                        System.out.println("Cannot add model " + values[0] + ".");
+                                    }
                                 }
                             }
                             System.out.println("Added " + added + " models");

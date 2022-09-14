@@ -1,17 +1,16 @@
 package ar.edu.itba.pod.client;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-
-import ar.edu.itba.pod.api.entities.PlaneModel;
+import ar.edu.itba.pod.api.utils.Pair;
+import ar.edu.itba.pod.api.entities.*;
+import ar.edu.itba.pod.api.exceptions.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -26,6 +25,7 @@ public class FlightManagementClient {
     // $> ./run-admin -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName [ -DinPath=filename | -Dflight=flightCode ]
 
     public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException {
+        
         Options options = new Options();
         Option addr = Option.builder("DserverAddress")
             .valueSeparator('=')
@@ -69,20 +69,16 @@ public class FlightManagementClient {
                 case "model":
                     if(cl.hasOption("DinPath")){
                         try {
+                            
                             BufferedReader reader = new BufferedReader(new FileReader(cl.getOptionValue("DinPath")));
+                            
                             reader.readLine();
-
-                           
                             Integer brows = null, bcols = null, eprows = null, epcols = null, erows = null, ecols = null;
                             int added = 0;
 
                             String l;
                             while((l = reader.readLine()) != null){
                                 String[] values = l.split(";");
-                                //nombre;CATE1#12#1;CATE2...
-                                //service.addPlaneModel(values[0],0,10,1,1,1,1);
-                                //models.add(values);
-
                                 //leo a partir de las categorias
                                 categoriesLoop:
                                 for(int i = 1; i < values.length; i++){
@@ -113,7 +109,6 @@ public class FlightManagementClient {
                                             }
                                             break;
                                     }
- 
                                 }
                                 if(brows == null){
                                     brows = 0;
@@ -127,48 +122,88 @@ public class FlightManagementClient {
                                     erows = 0;
                                     ecols = 0;
                                 }
-
                                 if(brows + eprows + erows == 0){
                                     System.out.println("Cannot add flight " + values[0] + ".");
                                     return;
                                 }
-
                                 try{
                                     service.addPlaneModel(values[0], brows, bcols, eprows, epcols, erows, ecols);
                                     added++;
                                 } catch(PlaneModelAlreadyExistsException e){
-                                    System.out.println(e);
+                                    System.out.println("Cannot add model " + values[0]);
                                 }
                             }
-
-
+                            System.out.println("Added " + added + " models");
                         } catch (IOException e) {
-                            throw new RuntimeException("Error reading models File.");
+                            //throw new RuntimeException("Error reading models File.");
+                            //System.out.println(e.getMessage());                
                         }
                     }
+                    break;
                 case "flights":
+                //Boeing 787;AA100;JFK;BUSINESS#John,ECONOMY#Juliet,BUSINESS#Elizabeth
+                //Plane Model; Flight Code; Destiny; SeatCategory#PassengerName, SeatCategory#PassengerName....
+                    if(cl.hasOption("DinPath")){
+                        try{
+                            BufferedReader reader = new BufferedReader(new FileReader(cl.getOptionValue("DinPath")));
+                            reader.readLine();
+                            int added = 0;
+                            String line;
+                            while((line = reader.readLine()) != null){
+                                
+                                String[] values = line.split(";");
+                                String[] tickets = values[3].split(",");
+                                
+                                SortedSet<Ticket> ticketsList = new TreeSet<Ticket>();
+                                for(String t : tickets){
+                                    String[] ticketArgs = t.split("#"); 
+                                    ticketsList.add(new Ticket(getCategory(ticketArgs[0]),ticketArgs[1]));
+                                }
+                                try {
+                                    service.addFlight(values[0],values[1],values[2],ticketsList); 
+                                    added++;
+                                } catch (FlightAlreadyExistsException | PlaneModelDoesntExistsException e) {
+                                    System.out.println("Cannot add flight " + values[1]);
+                                } 
+                            }
+                            System.out.println(added + " flights added");
+                        }catch(IOException e){
+                            e.printStackTrace();
+                        } 
+                    }
                 case "status":
                     if(cl.hasOption("Dflight")){
                         FlightStatus fs = service.checkFlightStatus(cl.getOptionValue("Dflight"));
-                        System.out.println(status(fs));
+                        System.out.println("Flight " + cl.getOptionValue("Dflight") + " is " + status(fs));
                     }
+                    break;
                 case "confirm":
                     if(cl.hasOption("Dflight")){
                         service.confirmFlight(cl.getOptionValue("Dflight"));
+                        System.out.println("Flight " + cl.getOptionValue("Dflight") + "was confirmed");
                     }
+                    break;
                 case "cancel":
                     if(cl.hasOption("Dflight")){
                         service.cancelFlight(cl.getOptionValue("Dflight"));
+                        System.out.println("Flight " + cl.getOptionValue("Dflight") + "was cancelled");
                     }
+                    break;
                 case "reticketing":
-                    service.forceTicketChange();
+                    Pair<Integer, Map<String, List<String>>> ret = service.forceTicketChange();
+                    System.out.println(ret.first + " tickets changed");
+                    for(String fc : ret.second.keySet()){
+                        for(String pn : ret.second.get(fc)){
+                            System.out.println("Cannot find alternative flight for " + pn + " with Ticket " + fc);
+                        }
+                    }
+                    break;
             }
-        } catch (ParseException e) {
-            System.out.print("Parse error: ");
+        } catch (ParseException | FlightDoesntExistException | TicketNotInFlightException   e) {
             System.out.println(e.getMessage());
         }
     }
-
+    
     public static String status(FlightStatus status){
         if(FlightStatus.PENDING == status){
             return new String("Pending");
@@ -181,27 +216,16 @@ public class FlightManagementClient {
         }
         return "Unknown";
     }
-
-
+    public static SeatCategory getCategory(String category) throws IOException {
+        if(category.equals("BUSINESS")){
+            return SeatCategory.BUSINESS;
+        }
+        if(category.equals("PREMIUM_ECONOMY")){
+            return SeatCategory.PREMIUM_ECONOMY;
+        }
+        if(category.equals("ECONOMY")){
+            return SeatCategory.ECONOMY;
+        }
+        throw new IOException();
+    }
 }
-
-// if(cl.hasOption("DserverAddress")){
-//     String server = cl.getOptionValue("DserverAddress");
-//     FlightManagementService service = (FlightManagementService) Naming.lookup(String.format("//%s/%s", server, FlightManagementService.class.getName()));
-//     service.addPlaneModel("Boeing 787", 2, 3, 3, 3, 20, 10);
-//     SortedSet<Ticket> s = new TreeSet<>();
-//     s.add(new Ticket(SeatCategory.ECONOMY, "Joaco"));
-//     s.add(new Ticket(SeatCategory.BUSINESS, "Nava"));
-//     service.addFlight("Boeing 787", "AA100", "JFK", s);
-//     System.out.println(cl.getOptionValue("DserverAddress"));
-//     if(cl.hasOption("Daction")){
-//         String a = cl.getOptionValue("Daction");
-//         if(a.equals("status")){
-//             if(cl.hasOption("Dflight")){
-//                 String fc = cl.getOptionValue("Dflight");
-//                 FlightStatus fs = service.checkFlightStatus(fc);
-//                 System.out.println(status(fs));
-//             }
-//         }
-//     }
-// }

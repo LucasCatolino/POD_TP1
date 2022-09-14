@@ -9,6 +9,7 @@ import ar.edu.itba.pod.api.services.FlightManagementService;
 import ar.edu.itba.pod.api.services.FlightNotificationService;
 import ar.edu.itba.pod.api.services.SeatAssignmentService;
 import ar.edu.itba.pod.api.services.SeatMapConsultationService;
+import ar.edu.itba.pod.api.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException, PlaneModelDoesntExistsException {
+    public void addFlight(String planeModelName, String flightCode, String destinyAirportCode, SortedSet<Ticket> tickets) throws RemoteException, PlaneModelDoesntExistsException, FlightAlreadyExistsException {
         fm.createNewFlight(planeModelName, flightCode, destinyAirportCode, tickets);
         logger.info("Flight {} added", flightCode);
     }
@@ -37,27 +38,26 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     @Override
     public FlightStatus checkFlightStatus(String flightCode) throws RemoteException, FlightDoesntExistException {
         return fm.checkFlightStatus(flightCode);
-        logger.info("Checked status for flight {}", flightCode);
+       // logger.info("Checked status for flight {}", flightCode);
     }
 
     @Override
     public void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
         fm.confirmFlight(flightCode);
-        logger.info("Confirmed flight {}", flightcode);
+        logger.info("Confirmed flight {}", flightCode);
     }
 
     @Override
     public void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
-    
         fm.cancelFlight(flightCode);
         logger.info("Flight {} cancelled",flightCode);
-        
     }
 
     @Override
-    public void forceTicketChange()  throws RemoteException, TicketNotInFlightException {
-        fm.forceTicketChange();
+    public Pair<Integer, Map<String, List<String>>> forceTicketChange()  throws RemoteException, TicketNotInFlightException {
+        Pair<Integer,Map<String,List<String>>> ret =  fm.forceTicketChange();
         logger.info("Forced ticket change");
+        return ret;
     }
 
     @Override
@@ -82,11 +82,11 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     @Override
     public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerDoesntHaveTicketException, PassengerDoesntHaveTicketException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException {
         fm.assignNewSeatToPassenger(flightCode, passengerName, row, column);
-        logger.info("Assigned seat {}{} for passenger {} in flight {}", row, column, passenger, flightcode);
+        logger.info("Assigned seat {}{} for passenger {} in flight {}", row, column, passengerName, flightCode);
     }
 
     @Override
-    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column)  throws RemoteException,FlightDoesntExistException, FlightIsNotPendingException, PassengerIsAlreadySeatedException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, PassengerIsNotSeatedException {
+    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerIsAlreadySeatedException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, PassengerIsNotSeatedException, PassengerDoesntHaveTicketException {
         fm.resitPassenger(flightCode, passengerName, row, column);
         logger.info("Passenger {} of flight {} was move to seat {}{}", passengerName, flightCode, row, column);
     }
@@ -94,7 +94,7 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     @Override
     public Map<String, List<Seat>> listAlternativeFlightSeats(String flightCode, String passengerName) throws RemoteException, FlightDoesntExistException, PassengerDoesntHaveTicketException {
         return fm.listAlternativeFlightSeats(flightCode, passengerName);
-        logger.info("Listing alternative flights for {}", passengerName);
+        //logger.info("Listing alternative flights for {}", passengerName);
     }
 
     @Override
@@ -106,18 +106,18 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     @Override
     public List<Seat> consultSeatMap(String flightCode)  throws RemoteException, FlightDoesntExistException {
         return fm.consultSeatMap(flightCode);
-        logger.info("SeatMap for flight {}", flightcode);
+       // logger.info("SeatMap for flight {}", flightCode);
     }
 
     @Override
     public List<Seat> consultSeatMap(String flightCode, SeatCategory category)  throws RemoteException, FlightDoesntExistException, SeatCategoryDoesntExistException {
         return fm.consultSeatMap(flightCode, category);
-        logger.info("SeatMap for flight {} with category {}", flightcode, category);
+       // logger.info("SeatMap for flight {} with category {}", flightCode, category);
     }
 
     @Override
     public List<Seat> consultSeatMap(String flightCode, int row)  throws RemoteException, FlightDoesntExistException, SeatRowDoesntExistException {
         return fm.consultSeatMap(flightCode, row);
-        logger.info("SeatMap for flight {} of row {}", flightcode, row);
+       // logger.info("SeatMap for flight {} of row {}", flightCode, row);
     }
 }

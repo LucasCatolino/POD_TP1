@@ -1,7 +1,8 @@
-package ar.edu.itba.pod.server.utils;
+package ar.edu.itba.pod.api.utils;
 
-public class Pair<U, V>
-{
+import java.io.Serializable;
+
+public class Pair<U, V> implements Serializable {
     public final U first;       // the first field of a pair
     public final V second;      // the second field of a pair
 

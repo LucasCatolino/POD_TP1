@@ -5,6 +5,9 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
+import ar.edu.itba.pod.api.exceptions.FlightDoesntExistException;
+import ar.edu.itba.pod.api.exceptions.SeatCategoryDoesntExistException;
+import ar.edu.itba.pod.api.exceptions.SeatRowDoesntExistException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -81,6 +84,12 @@ public class SeatMapConsultationClient {
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
+        } catch (SeatRowDoesntExistException e) {
+            e.printStackTrace();
+        } catch (FlightDoesntExistException e) {
+            e.printStackTrace();
+        } catch (SeatCategoryDoesntExistException e) {
+            e.printStackTrace();
         }
     }
 

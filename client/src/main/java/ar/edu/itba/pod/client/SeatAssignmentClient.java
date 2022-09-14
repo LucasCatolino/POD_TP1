@@ -7,6 +7,7 @@ import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map;
 
+import ar.edu.itba.pod.api.exceptions.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -110,9 +111,30 @@ public class SeatAssignmentClient {
                         service.changePassengerFlight(cl.getOptionValue("Dpassenger"), cl.getOptionValue("DoriginalFlight"), cl.getOptionValue("Dflight"));
                     }
             }
+            //TODO: VER QUE ONDA ESTOS CATCHs
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
+        } catch (PassengerIsNotSeatedException e) {
+            e.printStackTrace();
+        } catch (InvalidSeatCategoryException e) {
+            e.printStackTrace();
+        } catch (PassengerIsAlreadySeatedException e) {
+            e.printStackTrace();
+        } catch (TicketNotInFlightException e) {
+            e.printStackTrace();
+        } catch (FlightDoesntExistException e) {
+            e.printStackTrace();
+        } catch (SeatIsTakenException e) {
+            e.printStackTrace();
+        } catch (FlightIsNotAnAlternativeException e) {
+            e.printStackTrace();
+        } catch (SeatDoesntExistException e) {
+            e.printStackTrace();
+        } catch (PassengerDoesntHaveTicketException e) {
+            e.printStackTrace();
+        } catch (FlightIsNotPendingException e) {
+            e.printStackTrace();
         }
     }
 }

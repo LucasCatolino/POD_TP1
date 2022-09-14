@@ -2,7 +2,7 @@ package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.api.entities.*;
 import ar.edu.itba.pod.api.exceptions.*;
-import ar.edu.itba.pod.server.utils.Pair;
+import ar.edu.itba.pod.api.utils.Pair;
 
 import java.util.TreeSet;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ public class FlightsManagement {
         }
     }
 
-    public void createNewFlight(String planeModel, String flightCode, String dstCode, SortedSet<Ticket> passengers) throws PlaneModelDoesntExistsException{
+    public void createNewFlight(String planeModel, String flightCode, String dstCode, SortedSet<Ticket> passengers) throws PlaneModelDoesntExistsException, FlightAlreadyExistsException{
         flightsMapLock.writeLock().lock();
         try {
             Flight f = new Flight(getModel(planeModel), flightCode, dstCode, passengers);
@@ -59,11 +59,6 @@ public class FlightsManagement {
                 if(!checkIfFlightExists(flightCode))
                     flightsMap.put(flightCode, f);
             }
-                
-        } catch (PlaneModelDoesntExistsException e) {
-            System.out.println(e);
-        } catch (FlightAlreadyExistsException e) {
-            System.out.println(e);
         }finally{
             flightsMapLock.writeLock().unlock();
         }
@@ -158,48 +153,62 @@ public class FlightsManagement {
     }
 
     public Pair<Flight,SeatCategory> getBestAlternativeFlight(List<Flight> flights, SeatCategory cat){
+        if(flights.isEmpty()){
+            return new Pair<>(null, null);
+        }
         Flight bestBusiness = null;
         Flight bestPremium = null;
         Flight bestEconomy = null;
         
         for (Flight f : flights){ 
-            synchronized(bestBusiness){
-                synchronized(bestPremium){
-                    synchronized(bestEconomy){
-                        synchronized(f){
-                            if(f.getbTickets() > 0) {
-                                if (bestBusiness == null || bestBusiness.getCompletion() > f.getCompletion()) {
-                                    bestBusiness = f;
-                                }
+            synchronized(f){
+                if(f.getbTickets() > 0) {
+                    if (bestBusiness == null){
+                        bestBusiness = f;
+                    }
+                    else{
+                        synchronized(bestBusiness){
+                            if(bestBusiness.getCompletion() > f.getCompletion()) {
+                                bestBusiness = f;
                             }
-                            if(f.getEpTickets() > 0){
-                                if(bestPremium == null || bestPremium.getCompletion() > f.getCompletion()){
-                                    bestPremium = f;
-                                }
+                        }
+                    }
+                }
+                if(f.getEpTickets() > 0){
+                    if (bestPremium == null){
+                        bestPremium = f;
+                    }
+                    else{
+                        synchronized(bestPremium){
+                            if(bestPremium.getCompletion() > f.getCompletion()) {
+                                bestPremium = f;
                             }
-                            if(f.geteTickets() > 0){
-                                if(bestEconomy == null || bestEconomy.getCompletion() > f.getCompletion()){
-                                    bestEconomy = f;
-                                }
+                        }
+                    }
+                }
+                if(f.geteTickets() > 0){
+                    if (bestEconomy == null){
+                        bestEconomy = f;
+                    }
+                    else{
+                        synchronized(bestEconomy){
+                            if(bestEconomy.getCompletion() > f.getCompletion()) {
+                                bestEconomy = f;
                             }
                         }
                     }
                 }
             }
         }
-        synchronized(bestBusiness){
-            synchronized(bestPremium){
-                synchronized(bestEconomy){
-                    if(cat == SeatCategory.BUSINESS && bestBusiness != null){
-                        return new Pair<>(bestBusiness, SeatCategory.BUSINESS);
-                    }
-                    if(bestPremium != null && cat != SeatCategory.ECONOMY){
-                        return new Pair<>(bestPremium, SeatCategory.PREMIUM_ECONOMY);
-                    }
-                    return new Pair<>(bestEconomy, SeatCategory.ECONOMY);
-                }
-            }
+        if(cat == SeatCategory.BUSINESS && bestBusiness != null){
+            return new Pair<>(bestBusiness, SeatCategory.BUSINESS);
         }
+        if(bestPremium != null && cat != SeatCategory.ECONOMY){
+            return new Pair<>(bestPremium, SeatCategory.PREMIUM_ECONOMY);
+        }
+
+        return new Pair<>(bestEconomy, SeatCategory.ECONOMY);
+    
     }
 
     public void changeTicket(Flight oldFlight, Flight newFlight, String passengerName, SeatCategory newCat) throws TicketNotInFlightException{
@@ -221,21 +230,33 @@ public class FlightsManagement {
         }
     }
 
-    public void forceTicketChange() throws TicketNotInFlightException {
+    public Pair<Integer,Map<String,List<String>>> forceTicketChange() throws TicketNotInFlightException {
+        Map<String, List<String>> map = new HashMap<>();
+        int ticketsChanged = 0;
         flightsCancelledLock.readLock().lock();
         try{
             for(Flight cf : flightsCancelled) {
                 synchronized(cf){
                     List<Flight> alternativeFlights = getPendingFlightsByDestiny(cf.getDestinyAirportCode());
+                    List<String> ps = new ArrayList<>();
                     for(Ticket t : cf.getTickets()){
                         synchronized(t){
                             //Todo: PR fijarse sis puede causar problema
                             Pair<Flight, SeatCategory> pr = getBestAlternativeFlight(alternativeFlights, t.getCategory());
-                            changeTicket(cf, pr.first, t.getPassengerName(), pr.second);
+                            if(pr.first == null){
+                                ps.add(t.getPassengerName());
+                            } else {
+                                changeTicket(cf, pr.first, t.getPassengerName(), pr.second);
+                                ticketsChanged++;
+                            }
                         }
+                    }
+                    if(!ps.isEmpty()){
+                        map.put(cf.getFlightCode(), ps);
                     }
                 }
             }
+            return new Pair<>(ticketsChanged, map);
         }finally{
             flightsCancelledLock.readLock().unlock();
         }

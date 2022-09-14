@@ -93,49 +93,36 @@ public class SeatAssignmentClient {
                             System.out.println("Seat " + cl.getOptionValue("Drow") +  cl.getOptionValue("Dcol") + " is ASSIGNED to " + ret );
                         }
                     }
+                    break;
                 case "assign":
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol") && cl.hasOption("Dpassenger")){
                         service.assignNewSeatToPassenger(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"), Integer.parseInt(cl.getOptionValue("Drow")), cl.getOptionValue("Dcol").charAt(0));
                     }
+                    break;
                 case "move":
+                    //TODO: chequear que la columna y fila exista!
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol") && cl.hasOption("Dpassenger")){
                         service.movePassengerToNewSeat(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"), Integer.parseInt(cl.getOptionValue("Drow")), cl.getOptionValue("Dcol").charAt(0));
                     }
+                    break;
                 case "alternatives":
                     if(cl.hasOption("Dpassenger")){
                         //TODO: ver en la consigna como imprimir esto (no tenemos el destiny y se necesita, asique deberiamos hacer un get a la api)
                         List<Flight> list = service.listAlternativeFlightSeats(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"));
                         printAlternativeSeats(list);
                     }
+                    break;
                 case "changeTicket":
                     if(cl.hasOption("Dpassenger") && cl.hasOption("DoriginalFlight")){
                         service.changePassengerFlight(cl.getOptionValue("Dpassenger"), cl.getOptionValue("DoriginalFlight"), cl.getOptionValue("Dflight"));
                     }
+                    break;
             }
-            //TODO: VER QUE ONDA ESTOS CATCHs
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
-        } catch (PassengerIsNotSeatedException e) {
-            e.printStackTrace();
-        } catch (InvalidSeatCategoryException e) {
-            e.printStackTrace();
-        } catch (PassengerIsAlreadySeatedException e) {
-            e.printStackTrace();
-        } catch (TicketNotInFlightException e) {
-            e.printStackTrace();
-        } catch (FlightDoesntExistException e) {
-            e.printStackTrace();
-        } catch (SeatIsTakenException e) {
-            e.printStackTrace();
-        } catch (FlightIsNotAnAlternativeException e) {
-            e.printStackTrace();
-        } catch (SeatDoesntExistException e) {
-            e.printStackTrace();
-        } catch (PassengerDoesntHaveTicketException e) {
-            e.printStackTrace();
-        } catch (FlightIsNotPendingException e) {
-            e.printStackTrace();
+        } catch (PassengerIsNotSeatedException | InvalidSeatCategoryException | FlightIsNotPendingException | TicketNotInFlightException | FlightDoesntExistException | SeatDoesntExistException | FlightIsNotAnAlternativeException | PassengerDoesntHaveTicketException | SeatIsTakenException | PassengerIsAlreadySeatedException e) {
+            System.out.println(e.getMessage());
         }
     }
 

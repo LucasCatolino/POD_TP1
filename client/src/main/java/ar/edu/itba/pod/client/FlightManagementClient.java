@@ -116,35 +116,6 @@ public class FlightManagementClient {
 
                                     }
                                 }
-                                /*for(int i = 1; i < values.length; i++){
-                                    String[] categoryInfo = values[i].split("#");
-                                    switch (categoryInfo[0]){
-                                        case "BUSINESS":
-                                            brows = Integer.parseInt(categoryInfo[1]);
-                                            bcols = Integer.parseInt(categoryInfo[2]);
-                                            if(brows <= 0 || bcols <= 0) {
-                                                flag = 1;
-                                                break categoriesLoop;
-                                            }
-                                            break;
-                                        case "PREMIUM_ECONOMY":
-                                            eprows = Integer.parseInt(categoryInfo[1]);
-                                            epcols = Integer.parseInt(categoryInfo[2]);
-                                            if(eprows <= 0 || epcols <= 0) {
-                                                flag = 1;
-                                                break categoriesLoop;
-                                            }
-                                            break;
-                                        case "ECONOMY":
-                                            erows = Integer.parseInt(categoryInfo[1]);
-                                            ecols = Integer.parseInt(categoryInfo[2]);
-                                            if(erows <= 0 || ecols <= 0) {
-                                                flag = 1;
-                                                break categoriesLoop;
-                                            }
-                                            break;
-                                    }
-                                }*/
                                 if(flag == 1){
                                     System.out.println("Cannot add model " + values[0] + ".");
                                 } else {

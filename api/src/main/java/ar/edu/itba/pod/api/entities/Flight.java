@@ -2,6 +2,10 @@ package ar.edu.itba.pod.api.entities;
 
 import java.util.Collection;
 import java.util.SortedSet;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +23,12 @@ public class Flight implements Comparable, Serializable {
     // Constructor
     public Flight(PlaneModel model, String flightCode, String destinyAirportCode, SortedSet<Ticket> passengers) {
         this.model = model;
+        this.flightCode = flightCode;
         this.seats = generateFlightSeats();
         this.tickets = passengers;
         this.status = FlightStatus.PENDING;
-        this.flightCode = flightCode;
         this.destinyAirportCode = destinyAirportCode;
         countTicketsByCategory(passengers);
-
     }
 
     private void countTicketsByCategory(Collection<Ticket> tickets) {
@@ -39,22 +42,39 @@ public class Flight implements Comparable, Serializable {
             }
         }
     }
-
+    
     // Metodos
+
+    public boolean passengerInFlight(String n) {
+        for(Ticket t : tickets) 
+            if(t.getPassengerName().equals(n))
+                return true;
+        return false;
+    }
+
     private List<Seat> generateFlightSeats() {
         List<Seat> res = new ArrayList<>();
         // Business Seats
-        for (int rows = 0; rows < this.model.getBusinessRows(); rows++)
-            for (int cols = 0; cols < this.model.getBusinessCols(); cols++)
+        int rows=1; 
+        
+        for (int i=0; i < this.model.getBusinessRows(); i++,rows++){
+            for (int cols = 0; cols < this.model.getBusinessCols(); cols++){
                 res.add(new Seat(rows, (char) (cols + 'A'), SeatCategory.BUSINESS));
+            }
+        }
         // Premium Economy Seats
-        for (int rows = 0; rows < this.model.getEpRows(); rows++)
-            for (int cols = 0; cols < this.model.getEpCols(); cols++)
+        for (int i=0; i < this.model.getEpRows(); i++,rows++){
+            for (int cols = 0; cols < this.model.getEpCols(); cols++){
                 res.add(new Seat(rows, (char) (cols + 'A'), SeatCategory.PREMIUM_ECONOMY));
+            }
+        }
         // Economy Seats
-        for (int rows = 0; rows < this.model.getEconRows(); rows++)
-            for (int cols = 0; cols < this.model.getEconCols(); cols++)
+        for (int i=0; i < this.model.getEconRows(); i++, rows++){
+            for (int cols = 0; cols < this.model.getEconCols(); cols++){
                 res.add(new Seat(rows, (char) (cols + 'A'), SeatCategory.ECONOMY));
+            }
+        }
+
         return res;
     }
 
@@ -65,21 +85,6 @@ public class Flight implements Comparable, Serializable {
     public void confirmFlight() {
         this.status = FlightStatus.CONFIRMED;
     }
-    
-    /*private void assignSeats() {
-        int aux = 0;
-        for(Ticket t : this.passengers) {
-            for(int i = aux ; i < seats.size() ; i++) {
-                Seat s = seats.get(i);
-                if(s.getCategory().equals(t.getCategory()) && !s.getPassengerName().equals("")) {
-                    s.setPassengerName(t.getPassengerName());
-                    aux = i;
-                    break;
-                }
-            }
-        }
-    }*/
-
 
     public SortedSet<Ticket> getTickets() {
         return tickets;
@@ -95,10 +100,6 @@ public class Flight implements Comparable, Serializable {
 
     public String getDestinyAirportCode() {
         return destinyAirportCode;
-    }
-
-    public int getbTickets() {
-        return model.getBusinessSeats() - bTickets;
     }
 
     public FlightStatus getStatus() {
@@ -127,7 +128,6 @@ public class Flight implements Comparable, Serializable {
         }
         if(cat == SeatCategory.PREMIUM_ECONOMY)
             epTickets++;
-
     }
 
     public void subtractTicketCount(SeatCategory cat){
@@ -152,11 +152,21 @@ public class Flight implements Comparable, Serializable {
         return model;
     }
 
+    public int getbTickets() {
+        return model.getBusinessSeats() - bTickets;
+    }
+
     public int getEpTickets() {
         return model.getEconomyPremiumSeats() - epTickets;
     }
 
     public int geteTickets() {
         return model.getEconomySeats() - eTickets;
+    }
+
+    @Override
+    public String toString() {
+        // TODO Auto-generated method stub
+        return "Flight " + flightCode + " with destination " + destinyAirportCode;
     }
 }

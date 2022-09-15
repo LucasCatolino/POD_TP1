@@ -51,16 +51,23 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public Pair<Integer, Map<String, List<String>>> forceTicketChange()  throws RemoteException, TicketNotInFlightException {
+    public Pair<Integer, Map<String, List<String>>> forceTicketChange()  throws RemoteException, TicketNotInFlightException, FlightDoesntExistException, PassengerNotSubscribedException, PassengerNotInFlightException {
         Pair<Integer,Map<String,List<String>>> ret =  fm.forceTicketChange();
         logger.info("Forced ticket change");
         return ret;
     }
 
     @Override
-    public void registerPassengerToNotify(String flightCode, String passengerName) throws RemoteException {
+    public void registerPassengerToNotify(String flightCode, String passengerName) throws RemoteException, FlightDoesntExistException, PassengerNotInFlightException, PassengerNotSubscribedException {
         //TODO:
+        fm.addPassengerToNotify(passengerName, flightCode);
     }
+
+        @Override
+    public Pair<Integer, String> notify(String flightCode, String passengerName) throws RemoteException,PassengerNotSubscribedException {
+        return fm.notifyPassenger(passengerName,flightCode);
+    }
+    
 
     @Override
     public String seatIsOccupied(String flightCode, int row, char column)  throws RemoteException, FlightDoesntExistException, SeatDoesntExistException {
@@ -77,13 +84,13 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerDoesntHaveTicketException, PassengerDoesntHaveTicketException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException {
+    public void assignNewSeatToPassenger(String flightCode, String passengerName, int row, char column)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerDoesntHaveTicketException, PassengerDoesntHaveTicketException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, SeatDoesntExistException {
         fm.assignNewSeatToPassenger(flightCode, passengerName, row, column);
         logger.info("Assigned seat {}{} for passenger {} in flight {}", row, column, passengerName, flightCode);
     }
 
     @Override
-    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerIsAlreadySeatedException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, PassengerIsNotSeatedException, PassengerDoesntHaveTicketException {
+    public void movePassengerToNewSeat(String flightCode, String passengerName, int row, char column) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, PassengerIsAlreadySeatedException, PassengerIsAlreadySeatedException, SeatIsTakenException, InvalidSeatCategoryException, PassengerIsNotSeatedException, PassengerDoesntHaveTicketException, SeatDoesntExistException {
         fm.resitPassenger(flightCode, passengerName, row, column);
         logger.info("Passenger {} of flight {} was move to seat {}{}", passengerName, flightCode, row, column);
     }
@@ -95,9 +102,9 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException,TicketNotInFlightException, FlightIsNotAnAlternativeException{
+    public void changePassengerFlight(String passengerName, String oldFlightCode, String newFlightCode)  throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException, TicketNotInFlightException, FlightIsNotAnAlternativeException, PassengerDoesntHaveTicketException, PassengerNotInFlightException{
         fm.changePassengerFlight(passengerName, oldFlightCode, newFlightCode);
-        logger.info("Changed {}'s flight {} to {}", passengerName, oldFlightCode,newFlightCode);
+        logger.info("Changed {} from flight {} to flight {}", passengerName, oldFlightCode,newFlightCode);
     }
 
     @Override

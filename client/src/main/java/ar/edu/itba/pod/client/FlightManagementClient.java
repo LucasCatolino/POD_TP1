@@ -65,7 +65,6 @@ public class FlightManagementClient {
             String server = cl.getOptionValue("DserverAddress");
             FlightManagementService service = (FlightManagementService) Naming.lookup(String.format("//%s/%s", server, FlightManagementService.class.getName()));
             switch(actionSelected){
-                //TODO: hacer manejo de CSV para estos dos parametros
                 case "model":
                     if(cl.hasOption("DinPath")){
                         try {
@@ -73,12 +72,13 @@ public class FlightManagementClient {
                             BufferedReader reader = new BufferedReader(new FileReader(cl.getOptionValue("DinPath")));
                             
                             reader.readLine();
-                            int brows = 0, bcols = 0, eprows = 0, epcols = 0, erows = 0, ecols = 0;
+                            int brows, bcols, eprows, epcols, erows, ecols;
                             int added = 0;
 
                             String l;
                             int flag;
                             while((l = reader.readLine()) != null){
+                                brows = 0; bcols = 0; eprows = 0; epcols = 0; erows = 0; ecols = 0;
                                 flag = 0;
                                 //AFK;BUSI#1#2,,ECO#3#2
                                 String[] values = l.split(";");
@@ -112,8 +112,6 @@ public class FlightManagementClient {
                                                 break categoriesLoop;
                                             }
                                             break;
-
-
                                     }
                                 }
                                 if(flag == 1){
@@ -174,13 +172,13 @@ public class FlightManagementClient {
                 case "confirm":
                     if(cl.hasOption("Dflight")){
                         service.confirmFlight(cl.getOptionValue("Dflight"));
-                        System.out.println("Flight " + cl.getOptionValue("Dflight") + "was confirmed");
+                        System.out.println("Flight " + cl.getOptionValue("Dflight") + " was confirmed");
                     }
                     break;
                 case "cancel":
                     if(cl.hasOption("Dflight")){
                         service.cancelFlight(cl.getOptionValue("Dflight"));
-                        System.out.println("Flight " + cl.getOptionValue("Dflight") + "was cancelled");
+                        System.out.println("Flight " + cl.getOptionValue("Dflight") + " was cancelled");
                     }
                     break;
                 case "reticketing":
@@ -193,7 +191,7 @@ public class FlightManagementClient {
                     }
                     break;
             }
-        } catch (ParseException | FlightDoesntExistException | TicketNotInFlightException   e) {
+        } catch (ParseException | FlightDoesntExistException | TicketNotInFlightException | PassengerNotSubscribedException | PassengerNotInFlightException   e) {
             System.out.println(e.getMessage());
         }
     }

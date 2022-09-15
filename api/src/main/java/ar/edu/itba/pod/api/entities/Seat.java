@@ -24,4 +24,9 @@ public class Seat implements Serializable{
     public void setCategory(SeatCategory category) { this.category = category; }
     public String getPassengerName() { return passengerName; }
     public void setPassengerName(String passengerName) { this.passengerName = passengerName; }
+
+    @Override
+    public String toString() {
+        return getCategory() + " " + getRow() + "" +  getColumn() ;
+    }
 }

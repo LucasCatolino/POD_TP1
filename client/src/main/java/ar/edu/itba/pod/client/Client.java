@@ -9,5 +9,6 @@ public class Client {
     public static void main(String[] args) {
 
         logger.info("POD_TP1 Client Starting ...");
+
     }
 }

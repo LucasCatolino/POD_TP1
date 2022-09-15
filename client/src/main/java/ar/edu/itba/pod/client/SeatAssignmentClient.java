@@ -5,7 +5,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
-import java.util.Map;
+
 
 import ar.edu.itba.pod.api.exceptions.*;
 import org.apache.commons.cli.CommandLine;
@@ -97,12 +97,15 @@ public class SeatAssignmentClient {
                 case "assign":
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol") && cl.hasOption("Dpassenger")){
                         service.assignNewSeatToPassenger(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"), Integer.parseInt(cl.getOptionValue("Drow")), cl.getOptionValue("Dcol").charAt(0));
+                        System.out.println("Assigned Seat " + cl.getOptionValue("Drow") + cl.getOptionValue("Dcol")+ " to " + cl.getOptionValue("Dpassenger"));
                     }
                     break;
                 case "move":
                     //TODO: chequear que la columna y fila exista!
                     if(cl.hasOption("Drow") && cl.hasOption("Dcol") && cl.hasOption("Dpassenger")){
                         service.movePassengerToNewSeat(cl.getOptionValue("Dflight"), cl.getOptionValue("Dpassenger"), Integer.parseInt(cl.getOptionValue("Drow")), cl.getOptionValue("Dcol").charAt(0));
+                        System.out.println("Moved " + cl.getOptionValue("Dpassenger") + " to Seat " + cl.getOptionValue("Drow") +cl.getOptionValue("Dcol") );    
+                    
                     }
                     break;
                 case "alternatives":
@@ -115,13 +118,14 @@ public class SeatAssignmentClient {
                 case "changeTicket":
                     if(cl.hasOption("Dpassenger") && cl.hasOption("DoriginalFlight")){
                         service.changePassengerFlight(cl.getOptionValue("Dpassenger"), cl.getOptionValue("DoriginalFlight"), cl.getOptionValue("Dflight"));
+                        System.out.println("Changed " + cl.getOptionValue("Dpassenger") + "'s ticket from flight " + cl.getOptionValue("DoriginalFlight") + " to flight "+ cl.getOptionValue("Dflight") );
                     }
                     break;
             }
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
-        } catch (PassengerIsNotSeatedException | InvalidSeatCategoryException | FlightIsNotPendingException | TicketNotInFlightException | FlightDoesntExistException | SeatDoesntExistException | FlightIsNotAnAlternativeException | PassengerDoesntHaveTicketException | SeatIsTakenException | PassengerIsAlreadySeatedException e) {
+        } catch (PassengerIsNotSeatedException | InvalidSeatCategoryException | FlightIsNotPendingException | TicketNotInFlightException | FlightDoesntExistException | SeatDoesntExistException | FlightIsNotAnAlternativeException | PassengerDoesntHaveTicketException | SeatIsTakenException | PassengerIsAlreadySeatedException | PassengerNotInFlightException e) {
             System.out.println(e.getMessage());
         }
     }

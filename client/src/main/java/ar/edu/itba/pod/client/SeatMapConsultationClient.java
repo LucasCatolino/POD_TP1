@@ -4,10 +4,9 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.List;
 
-import ar.edu.itba.pod.api.exceptions.FlightDoesntExistException;
-import ar.edu.itba.pod.api.exceptions.SeatCategoryDoesntExistException;
-import ar.edu.itba.pod.api.exceptions.SeatRowDoesntExistException;
+import ar.edu.itba.pod.api.exceptions.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -15,7 +14,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import ar.edu.itba.pod.api.entities.SeatCategory;
+import ar.edu.itba.pod.api.entities.*;
 import ar.edu.itba.pod.api.services.SeatMapConsultationService;
 
 public class SeatMapConsultationClient {
@@ -63,6 +62,7 @@ public class SeatMapConsultationClient {
         CommandLine cl;
         CommandLineParser clp = new DefaultParser();
         try {
+            //TODO: HACER QUE CARGUE UN CSV
             cl = clp.parse(options, args);
             String server = cl.getOptionValue("DserverAddress");
             SeatMapConsultationService service = (SeatMapConsultationService) Naming.lookup(String.format("//%s/%s", server, SeatMapConsultationService.class.getName()));
@@ -71,25 +71,27 @@ public class SeatMapConsultationClient {
             if(cl.hasOption("Dcategory")){
                 SeatCategory cat = getCategory(cl.getOptionValue("Dcategory"));
                 if(cat != null){
-                    service.consultSeatMap(cl.getOptionValue("Dflight"), cat);
+                    List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"), cat);
+                    printSeatMap(ret);
                 }
             }
             else if (cl.hasOption("Drow")){
-                //TODO: no se si hay que revisar la row ingresada aca o en el server
-                service.consultSeatMap(cl.getOptionValue("Dflight"), Integer.parseInt(cl.getOptionValue("Drow")));
+                List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"), Integer.parseInt(cl.getOptionValue("Drow")));
+                printSeatMap(ret);
             }
             else {
-                service.consultSeatMap(cl.getOptionValue("Dflight"));
+                List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"));
+                printSeatMap(ret);
             }
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
-        } catch (SeatRowDoesntExistException e) {
-            e.printStackTrace();
-        } catch (FlightDoesntExistException e) {
-            e.printStackTrace();
-        } catch (SeatCategoryDoesntExistException e) {
-            e.printStackTrace();
+        } catch (SeatRowDoesntExistException e){
+            System.out.println(e.getMessage());
+        } catch (FlightDoesntExistException e){
+            System.out.println(e.getMessage());
+        } catch (SeatCategoryDoesntExistException e){
+            System.out.println(e.getMessage());
         }
     }
 
@@ -104,5 +106,34 @@ public class SeatMapConsultationClient {
             return SeatCategory.ECONOMY;
         }
         return null;
+    }
+
+    private static void printSeatMap(List<Seat> seats){
+        seats.sort((s1,s2) -> {
+            if(s1.getRow() == s2.getRow()){
+                return Character.compare(s1.getColumn(), s2.getColumn());
+            } 
+            return s1.getRow() - s2.getRow();
+        });
+        StringBuilder ret = new StringBuilder();
+        ret.append(" | ");
+        SeatCategory lastCat = null;
+        int row = seats.get(0).getRow();
+        for(Seat s : seats){
+            if(s.getRow() != row){
+                row++;
+                ret.append('\t').append(lastCat).append('\n').append(" | ");
+            }
+            ret.append(s.getRow()).append(" ").append(s.getColumn()).append(" ");
+            if(s.getPassengerName().equals("FREE")){
+                ret.append("*");
+            } else {
+                ret.append(s.getPassengerName().charAt(0));
+            }
+            ret.append(" ").append(" | ");
+            lastCat = s.getCategory();
+        }
+        ret.append('\t').append(lastCat).append('\n');
+        System.out.println(ret);
     }
 }

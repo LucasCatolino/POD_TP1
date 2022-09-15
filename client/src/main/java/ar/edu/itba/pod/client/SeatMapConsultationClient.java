@@ -1,10 +1,16 @@
 package ar.edu.itba.pod.client;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ar.edu.itba.pod.api.exceptions.*;
 import org.apache.commons.cli.CommandLine;
@@ -16,6 +22,9 @@ import org.apache.commons.cli.ParseException;
 
 import ar.edu.itba.pod.api.entities.*;
 import ar.edu.itba.pod.api.services.SeatMapConsultationService;
+import utils.CSVWriter;
+
+
 
 public class SeatMapConsultationClient {
     // $> ./run-seatMap -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode [ -Dcategory=catName | -Drow=rowNumber ] -DoutPath=output.csv
@@ -62,35 +71,39 @@ public class SeatMapConsultationClient {
         CommandLine cl;
         CommandLineParser clp = new DefaultParser();
         try {
-            //TODO: HACER QUE CARGUE UN CSV
             cl = clp.parse(options, args);
             String server = cl.getOptionValue("DserverAddress");
             SeatMapConsultationService service = (SeatMapConsultationService) Naming.lookup(String.format("//%s/%s", server, SeatMapConsultationService.class.getName()));
-            // TODO: ACA hay que recibir la info en listas y de ahi llenar los output.csv
-            // TODO: En caso de error o rta vacia no llenar archivos, solo imprimir por pantalla
+            CSVWriter csvWriter = new CSVWriter();
+
             if(cl.hasOption("Dcategory")){
                 SeatCategory cat = getCategory(cl.getOptionValue("Dcategory"));
                 if(cat != null){
                     List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"), cat);
                     printSeatMap(ret);
+                    if(ret.size() != 0){
+                        csvWriter.writeToCSV(ret, cl.getOptionValue("DoutPath"));
+                    }
                 }
             }
             else if (cl.hasOption("Drow")){
                 List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"), Integer.parseInt(cl.getOptionValue("Drow")));
                 printSeatMap(ret);
+                if(ret.size() != 0){
+                   csvWriter.writeToCSV(ret, cl.getOptionValue("DoutPath"));
+                }
             }
             else {
                 List<Seat> ret = service.consultSeatMap(cl.getOptionValue("Dflight"));
                 printSeatMap(ret);
+                if(ret.size() != 0){
+                    csvWriter.writeToCSV(ret, cl.getOptionValue("DoutPath"));
+                }
             }
         } catch (ParseException e) {
             System.out.print("Parse error: ");
             System.out.println(e.getMessage());
-        } catch (SeatRowDoesntExistException e){
-            System.out.println(e.getMessage());
-        } catch (FlightDoesntExistException e){
-            System.out.println(e.getMessage());
-        } catch (SeatCategoryDoesntExistException e){
+        } catch (SeatRowDoesntExistException | FlightDoesntExistException | SeatCategoryDoesntExistException | FileNotFoundException e){
             System.out.println(e.getMessage());
         }
     }
@@ -136,4 +149,6 @@ public class SeatMapConsultationClient {
         ret.append('\t').append(lastCat).append('\n');
         System.out.println(ret);
     }
+
+
 }

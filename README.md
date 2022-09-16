@@ -60,7 +60,7 @@ Para poder correr el proyecto se deberá tener instalado y funcional:
 El proyecto cuenta con 4 servicios cliente, donde cada uno coincide con una interfaz remota. Los scripts para ejecutarlos se podrán encontrar en /client/target/tpe1-g12-client-1.0-SNAPSHOT. Para ejecutarlos, ubicar una nueva consola (manteniendo las dos del servidor funcionando), y ejecutar cualquiera de los siguientes comandos:
 - FlightManagementClient
     ```
-    ./run-admin.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName[ -DinPath=filename |  -Dflight=flightCode ]
+    ./run-admin -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName[ -DinPath=filename |  -Dflight=flightCode ]
     ```
     Donde:
     - xx.xx.xx.xx:yyyy: IP y puerto donde está publicado el servicio de administración de vuelos
@@ -72,7 +72,7 @@ El proyecto cuenta con 4 servicios cliente, donde cada uno coincide con una inte
         - reticketing: fuerza el cambio de tickets de vuelos cancelados por tickets de vuelos alternativos
 - FlightNotificationClient
     ```
-    ./run-notifcations.sh -DserverAddress=xx.xx.xx.xx:yyyy-Dflight=flightCode -Dpassenger=name
+    ./run-notifcations -DserverAddress=xx.xx.xx.xx:yyyy-Dflight=flightCode -Dpassenger=name
     ```
      Donde:
     - xx.xx.xx.xx:yyyy: IP y puerto donde está publicado el servicio de notificaciones del vuelo
@@ -80,7 +80,7 @@ El proyecto cuenta con 4 servicios cliente, donde cada uno coincide con una inte
     - name: nombre del pasajero
 - SeatAssignmentClient
     ```
-    ./run-seatAssign.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName-Dflight=flightCode [ -Dpassenger=name | -Drow=num | -Dcol=L | -DoriginalFlight=originFlightCode ]
+    ./run-seatAssign -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName-Dflight=flightCode [ -Dpassenger=name | -Drow=num | -Dcol=L | -DoriginalFlight=originFlightCode ]
     ```
     Donde:
     - xx.xx.xx.xx:yyyy: IP y puerto donde está publicado el servicio de asignación de asientos
@@ -96,7 +96,7 @@ El proyecto cuenta con 4 servicios cliente, donde cada uno coincide con una inte
         - changeTicket: cambia el ticket del pasajero *name* de un vuelo con código *originFlightCode* a otro vuelo alternativo de código *flightCode*
 - SeatMapConsultationClient
     ```
-    ./run-seatMap.sh -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode [-Dcategory=catName | -Drow=rowNumber ] -DoutPath=output.csv
+    ./run-seatMap -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode [-Dcategory=catName | -Drow=rowNumber ] -DoutPath=output.csv
     ```
      Donde:
     - xx.xx.xx.xx:yyyy: IP y puerto donde está publicado el servicio de consulta del mapa de asientos

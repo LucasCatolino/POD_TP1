@@ -121,6 +121,8 @@ public class FlightsManagement {
             Flight f = flightsMap.get(fc);
             if(f != null){
                 synchronized(f){
+                    if(clientsToNotify.get(fc) == null)
+                        return;
                     for(String n : clientsToNotify.get(fc)){
                         Seat s = getSeatOfPassenger(fc,n);
                         if(s != null){
@@ -138,7 +140,7 @@ public class FlightsManagement {
             }   
         }finally{
             clientsToNotifyLock.readLock().unlock();
-            flightsMapLock.readLock().lock();
+            flightsMapLock.readLock().unlock();
         }
     }
 
@@ -209,42 +211,49 @@ public class FlightsManagement {
         }
     }
 
-    public void confirmFlight(String flightCode) throws FlightDoesntExistException {
-        flightsMapLock.readLock().lock();
+    public void confirmFlight(String flightCode) throws FlightDoesntExistException, FlightIsNotPendingException {
+        flightsMapLock.writeLock().lock();
         try {
             Flight f = flightsMap.get(flightCode);
             if(f == null)
                 throw new FlightDoesntExistException(flightCode);
-            synchronized (flightsMap) {
+            //logger
+            if(f.getStatus().equals(FlightStatus.PENDING)) {
                 f.confirmFlight();
                 flightsMap.put(flightCode, f);
                 try {
-					notifyStatusChange(flightCode, "confirmed", 1);
-				}catch(PassengerNotSubscribedException e){}
-
+                    notifyStatusChange(flightCode, "confirmed", 1);
+                }catch(PassengerNotSubscribedException e){}
+            } else {
+                throw new FlightIsNotPendingException(flightCode);
             }
         } finally {
-            flightsMapLock.readLock().unlock();
+            
+            flightsMapLock.writeLock().unlock();
         }
     }
 
-    public void cancelFlight(String flightCode) throws FlightDoesntExistException {
-        flightsMapLock.readLock().lock();
+    public void cancelFlight(String flightCode) throws FlightDoesntExistException, FlightIsNotPendingException {
+        flightsMapLock.writeLock().lock();
         flightsCancelledLock.writeLock().lock();
         try {
             Flight f = flightsMap.get(flightCode);
             if(f == null)
                     throw new FlightDoesntExistException(flightCode);
             synchronized(f){
-                flightsMap.put(flightCode, f.cancelFlight());
-                flightsCancelled.add(f);
-                try {
-					notifyStatusChange(flightCode, "cancelled", 0);
-				}catch(PassengerNotSubscribedException e){}
+                if(f.getStatus() == FlightStatus.PENDING){
+                    flightsMap.put(flightCode, f.cancelFlight());
+                    flightsCancelled.add(f);
+                    try {
+                        notifyStatusChange(flightCode, "cancelled", 0);
+                    }catch(PassengerNotSubscribedException e){}
+                } else {
+                    throw new FlightIsNotPendingException(flightCode);
+                }
 
             }            
         } finally {
-            flightsMapLock.readLock().unlock();
+            flightsMapLock.writeLock().unlock();
             flightsCancelledLock.writeLock().unlock();
         }
     }
@@ -348,7 +357,7 @@ public class FlightsManagement {
         return new Pair<>(bestEconomy, SeatCategory.ECONOMY);
     }
 
-    public void changeTicket(Flight oldFlight, Flight newFlight, String passengerName, SeatCategory newCat) throws TicketNotInFlightException, PassengerNotInFlightException, FlightDoesntExistException{
+    public boolean changeTicket(Flight oldFlight, Flight newFlight, String passengerName, SeatCategory newCat) throws TicketNotInFlightException, PassengerNotInFlightException, FlightDoesntExistException{
         clientsToNotifyLock.readLock().lock();
         try {
             synchronized(oldFlight){
@@ -356,27 +365,25 @@ public class FlightsManagement {
                     synchronized(newFlight){
                         synchronized(t){
                             if (t.getPassengerName().equals(passengerName)){
-                                oldFlight.getTickets().remove(t);
                                 oldFlight.subtractTicketCount(newCat);
                                 newFlight.getTickets().add(new Ticket(newCat, passengerName));
                                 newFlight.addTicketCount(newCat);
                                 List<String> oldFlightClientsList = clientsToNotify.get(oldFlight.getFlightCode());
                                 if(oldFlightClientsList == null){
-                                    return;
+                                    return true;
                                 }
                                 synchronized(oldFlightClientsList){
                                     if(oldFlightClientsList.contains(passengerName)){
                                         try {
-                                            logger.info("Antes del addnotification");
+                                            
                                             addNotification(passengerName, oldFlight.getFlightCode(),"Your ticket changed to " + newFlight.toString() + " from " + oldFlight.toString(),1);
                                             //oldFlightClientsList.remove(passengerName);
-
                                         } catch (PassengerNotSubscribedException e) {
-                                            logger.info("CATCH");
+                                            
                                         }
                                     }
                                 }
-                                return;
+                                return true;
                             }
                         }
                     }
@@ -397,6 +404,7 @@ public class FlightsManagement {
                 synchronized(cf){
                     List<Flight> alternativeFlights = getPendingFlightsByDestiny(cf.getFlightCode());
                     List<String> ps = new ArrayList<>();
+                    List<Ticket> toRemove = new ArrayList<>();
                     for(Ticket t : cf.getTickets()){
                         synchronized(t){
                             //Todo: PR fijarse sis puede causar problema
@@ -404,11 +412,15 @@ public class FlightsManagement {
                             if(pr.first == null){
                                 ps.add(t.getPassengerName());
                             } else {
-                                changeTicket(cf, pr.first, t.getPassengerName(), pr.second);
+                                if(changeTicket(cf, pr.first, t.getPassengerName(), pr.second)){
+                                    toRemove.add(t);
+                                }
                                 ticketsChanged++;
                             }
                         }
                     }
+                    cf.getTickets().removeAll(toRemove);
+                    
                     if(!ps.isEmpty()){
                         map.put(cf.getFlightCode(), ps);
                     }
@@ -708,5 +720,13 @@ public class FlightsManagement {
         } finally {
             flightsMapLock.readLock().unlock();
         }
+    }
+
+    public List<PlaneModel> getPlaneModels() {
+        return planeModels;
+    }
+
+    public Map<String, Flight> getFlightsMap() {
+        return flightsMap;
     }
 }

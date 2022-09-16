@@ -19,9 +19,9 @@ public interface FlightManagementService extends Remote {
 
     FlightStatus checkFlightStatus(String flightCode) throws RemoteException, FlightDoesntExistException;
 
-    void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException;
+    void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException;
 
-    void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException;
+    void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException;
 
     Pair<Integer,Map<String,List<String>>> forceTicketChange() throws RemoteException, TicketNotInFlightException, FlightDoesntExistException, PassengerNotSubscribedException, PassengerNotInFlightException;
 }

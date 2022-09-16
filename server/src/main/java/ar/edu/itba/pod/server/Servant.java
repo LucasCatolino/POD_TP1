@@ -39,13 +39,13 @@ public class Servant implements SeatMapConsultationService, FlightNotificationSe
     }
 
     @Override
-    public void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
+    public void confirmFlight(String flightCode) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException {
         fm.confirmFlight(flightCode);
         logger.info("Confirmed flight {}", flightCode);
     }
 
     @Override
-    public void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException {
+    public void cancelFlight(String flightCode) throws RemoteException, FlightDoesntExistException, FlightIsNotPendingException {
         fm.cancelFlight(flightCode);
         logger.info("Flight {} cancelled",flightCode);
     }

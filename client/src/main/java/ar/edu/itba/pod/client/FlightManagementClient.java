@@ -24,7 +24,7 @@ import ar.edu.itba.pod.api.services.FlightManagementService;
 public class FlightManagementClient {
     // $> ./run-admin -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName [ -DinPath=filename | -Dflight=flightCode ]
 
-    public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException {
+    public static void main(String[] args) throws MalformedURLException, RemoteException, NotBoundException, FlightIsNotPendingException {
         
         Options options = new Options();
         Option addr = Option.builder("DserverAddress")
@@ -191,7 +191,7 @@ public class FlightManagementClient {
                     }
                     break;
             }
-        } catch (ParseException | FlightDoesntExistException | TicketNotInFlightException | PassengerNotSubscribedException | PassengerNotInFlightException   e) {
+        } catch (ParseException | FlightDoesntExistException | TicketNotInFlightException | PassengerNotSubscribedException | PassengerNotInFlightException | FlightIsNotPendingException e) {
             System.out.println(e.getMessage());
         }
     }
